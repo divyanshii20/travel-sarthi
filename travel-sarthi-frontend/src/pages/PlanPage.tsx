@@ -275,7 +275,7 @@ export function PlanPage() {
           src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1600&q=85"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: 'center 55%' }}
+          style={{ objectPosition: 'center 55%', filter: 'blur(5px)', transform: 'scale(1.08)' }}
         />
         {/* Ultra-light overlay — 5-6% tint, text readable via shadow */}
         <div className="absolute inset-0" style={{
