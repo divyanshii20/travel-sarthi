@@ -66,6 +66,10 @@ const envSchema = z.object({
   AERODATABOX_API_KEY: z.string().default('placeholder'),
   AERODATABOX_WEBHOOK_SECRET: z.string().default('placeholder'),
 
+  // Aviation Stack
+  AVIATIONSTACK_API_KEY: z.string().default('placeholder'),
+  AVIATIONSTACK_BASE_URL: z.string().url().default('http://api.aviationstack.com/v1'),
+
   // ML Service
   ML_SERVICE_URL: z.string().url().default('http://localhost:8000'),
   ML_SERVICE_API_KEY: z.string().default('placeholder'),

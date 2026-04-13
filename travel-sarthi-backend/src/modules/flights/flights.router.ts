@@ -4,7 +4,7 @@ import { requireAuth, optionalAuth } from '../../middleware/auth';
 import { validateBody, validateQuery, validateParams } from '../../middleware/validate';
 import { searchRateLimiter } from '../../middleware/rateLimiter';
 import { sendSuccess } from '../../shared/response';
-import { searchFlights } from './flights.service';
+import { searchFlights, getLiveFlightStatus } from './flights.service';
 import { getPricePrediction } from '../price-prediction/prediction.service';
 
 const router = Router();
@@ -88,6 +88,22 @@ router.get('/predict', optionalAuth, validateQuery(predictionQuerySchema), async
       travelers: { adults: q.adults, children: 0, infants: 0 },
     });
     sendSuccess(res, prediction);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/flights/status?flight=6E123&date=2026-04-13
+const statusQuerySchema = z.object({
+  flight: z.string().min(3).toUpperCase(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
+});
+
+router.get('/status', optionalAuth, validateQuery(statusQuerySchema), async (req, res, next) => {
+  try {
+    const q = req.query as z.infer<typeof statusQuerySchema>;
+    const status = await getLiveFlightStatus(q.flight, q.date);
+    sendSuccess(res, status ?? { message: 'No data found for this flight/date' });
   } catch (err) {
     next(err);
   }

@@ -95,6 +95,121 @@ async function searchAmadeus(dto: FlightSearchRequestDTO): Promise<FlightResult[
   }
 }
 
+// ─── Aviation Stack Search ────────────────────────────────────────────────────
+
+interface AviationStackFlight {
+  flight_date: string;
+  flight_status: string;
+  departure: {
+    airport: string;
+    iata: string;
+    scheduled: string;
+    estimated: string | null;
+    actual: string | null;
+    terminal: string | null;
+    gate: string | null;
+    delay: number | null;
+  };
+  arrival: {
+    airport: string;
+    iata: string;
+    scheduled: string;
+    estimated: string | null;
+    terminal: string | null;
+    gate: string | null;
+    delay: number | null;
+  };
+  airline: { name: string; iata: string; icao: string };
+  flight: { number: string; iata: string; icao: string };
+}
+
+interface AviationStackResponse {
+  data: AviationStackFlight[];
+  pagination?: { limit: number; offset: number; count: number; total: number };
+}
+
+async function searchAviationStack(dto: FlightSearchRequestDTO): Promise<FlightResult[]> {
+  if (env.AVIATIONSTACK_API_KEY === 'placeholder') return [];
+  try {
+    const res = await axios.get(`${env.AVIATIONSTACK_BASE_URL}/flights`, {
+      params: {
+        access_key: env.AVIATIONSTACK_API_KEY,
+        dep_iata: dto.origin,
+        arr_iata: dto.destination,
+        flight_date: dto.departDate,
+        flight_status: 'scheduled',
+        limit: 25,
+      },
+      timeout: 12000,
+    });
+
+    return transformAviationStackResults(res.data as AviationStackResponse);
+  } catch (err) {
+    logger.warn({ err }, 'AviationStack search failed');
+    return [];
+  }
+}
+
+function transformAviationStackResults(data: AviationStackResponse): FlightResult[] {
+  if (!data?.data?.length) return [];
+
+  return data.data
+    .filter((f) => f.flight_status === 'scheduled' && f.departure?.iata && f.arrival?.iata)
+    .map((f): FlightResult => {
+      const depTime = new Date(f.departure.scheduled);
+      const arrTime = new Date(f.arrival.scheduled);
+      const durationMin = Math.round((arrTime.getTime() - depTime.getTime()) / 60000);
+
+      return {
+        id: `avstack_${f.flight.iata}_${f.flight_date}`,
+        source: 'aviationstack' as any,
+        segments: [
+          {
+            id: `seg_${f.flight.iata}`,
+            flightNumber: f.flight.iata,
+            airline: { iataCode: f.airline.iata, name: f.airline.name, logoUrl: null },
+            aircraft: { model: null, registration: null },
+            departure: {
+              airport: { iataCode: f.departure.iata, name: f.departure.airport, city: f.departure.iata, country: null, terminal: f.departure.terminal, gate: f.departure.gate },
+              scheduledTime: f.departure.scheduled,
+              estimatedTime: f.departure.estimated ?? f.departure.scheduled,
+              actualTime: f.departure.actual ?? null,
+              delay: f.departure.delay ?? 0,
+            },
+            arrival: {
+              airport: { iataCode: f.arrival.iata, name: f.arrival.airport, city: f.arrival.iata, country: null, terminal: f.arrival.terminal, gate: f.arrival.gate },
+              scheduledTime: f.arrival.scheduled,
+              estimatedTime: f.arrival.estimated ?? f.arrival.scheduled,
+              actualTime: null,
+              delay: f.arrival.delay ?? 0,
+            },
+            duration: durationMin,
+            cabinClass: 'economy',
+            seatsAvailable: null,
+            baggageAllowance: { cabin: '7kg', checked: '15kg' },
+            amenities: [],
+          },
+        ],
+        stops: 0,
+        totalDuration: durationMin,
+        prices: [
+          {
+            cabinClass: 'economy',
+            price: { amount: 0, currency: 'INR', formatted: 'Check airline' },
+            seatsLeft: null,
+            isSoldOut: false,
+            fareConditions: { isRefundable: false, isChangeable: false, baggageIncluded: false },
+          },
+        ],
+        isSeatSelectable: false,
+        voyageScore: { overall: 50, price: 50, speed: 50, comfort: 50, reliability: 50, convenience: 50, badge: null },
+        bookingOptions: [],
+        tags: [],
+        alerts: [],
+      };
+    });
+}
+
 // ─── Parallel Search + Merge ──────────────────────────────────────────────────
 
 export async function searchFlights(dto: FlightSearchRequestDTO) {
@@ -111,12 +226,13 @@ export async function searchFlights(dto: FlightSearchRequestDTO) {
   );
 
   return withCache(cacheKey, 900, async () => {
-    const [kiwiResults, amadeusResults] = await Promise.all([
+    const [kiwiResults, amadeusResults, aviationStackResults] = await Promise.all([
       searchKiwi(dto),
       searchAmadeus(dto),
+      searchAviationStack(dto),
     ]);
 
-    const merged = mergeAndDeduplicate([...kiwiResults, ...amadeusResults]);
+    const merged = mergeAndDeduplicate([...kiwiResults, ...amadeusResults, ...aviationStackResults]);
     const scored = merged.map(computeVoyageScore);
     const sorted = scored.sort((a, b) => b.voyageScore.overall - a.voyageScore.overall);
 
@@ -128,6 +244,27 @@ export async function searchFlights(dto: FlightSearchRequestDTO) {
       totalResults: sorted.length,
       filters: buildFilterOptions(sorted),
     };
+  });
+}
+
+// ─── Live Flight Status (Aviation Stack) ─────────────────────────────────────
+
+export async function getLiveFlightStatus(flightIata: string, date: string) {
+  if (env.AVIATIONSTACK_API_KEY === 'placeholder') {
+    throw new ExternalServiceError('AviationStack API key not configured');
+  }
+  const cacheKey = buildCacheKey('flight-status', flightIata, date);
+  return withCache(cacheKey, 120, async () => {
+    const res = await axios.get(`${env.AVIATIONSTACK_BASE_URL}/flights`, {
+      params: {
+        access_key: env.AVIATIONSTACK_API_KEY,
+        flight_iata: flightIata,
+        flight_date: date,
+      },
+      timeout: 10000,
+    });
+    const data = res.data as AviationStackResponse;
+    return data.data?.[0] ?? null;
   });
 }
 
