@@ -26,10 +26,18 @@ export const redis = createRedisClient();
 
 // BullMQ requires separate connection instances
 export function createBullMQRedisConnection(): Redis {
-  return new Redis(env.REDIS_URL, {
+  const client = new Redis(env.REDIS_URL, {
     maxRetriesPerRequest: null, // required by BullMQ
     enableOfflineQueue: false,
+    retryStrategy: (times) => {
+      if (times > 20) return null;
+      return Math.min(times * 200, 5000);
+    },
+    connectTimeout: 10000,
   });
+  // Prevent unhandled error events from crashing the process
+  client.on('error', () => { /* handled by BullMQ worker error event */ });
+  return client;
 }
 
 export async function closeRedis(): Promise<void> {

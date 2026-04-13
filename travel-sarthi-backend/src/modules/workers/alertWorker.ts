@@ -102,5 +102,9 @@ export function startAlertWorker() {
     logger.error({ jobId: job?.id, err }, 'Alert job failed');
   });
 
+  worker.on('error', (err) => {
+    logger.warn({ err: err.message }, 'Alert worker connection error — will retry');
+  });
+
   return worker;
 }
