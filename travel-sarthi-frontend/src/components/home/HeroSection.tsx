@@ -1,8 +1,19 @@
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, TrendingDown, Clock, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { containerVariants, itemVariants, scaleIn } from '@/lib/animations';
 import { CDN_IMAGES } from '@/constants/cdnImages';
+
+const SLIDES = [
+  { src: CDN_IMAGES.goa,      name: 'Goa, India',           sub: "India's Most Loved Beach Escape ✈️" },
+  { src: CDN_IMAGES.kerala,   name: 'Kerala, India',         sub: "God's Own Country 🌿" },
+  { src: CDN_IMAGES.andaman,  name: 'Andaman Islands',       sub: 'Crystal Waters & White Sands 🐠' },
+  { src: CDN_IMAGES.himachal, name: 'Himachal Pradesh',      sub: 'Peaks, Valleys & Starlit Skies 🏔️' },
+  { src: CDN_IMAGES.rajasthan,name: 'Rajasthan, India',      sub: 'Land of Kings & Colours 🏰' },
+  { src: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800&q=80',
+                               name: 'Santorini, Greece',     sub: 'Sunsets Over the Aegean ☀️' },
+];
 
 const floatingCards = [
   {
@@ -38,6 +49,13 @@ const stats = [
 ];
 
 export function HeroSection() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setActive((p) => (p + 1) % SLIDES.length), 4500);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden pt-[68px]" style={{ background: 'var(--bg-page)' }}>
 
@@ -134,21 +152,56 @@ export function HeroSection() {
             <div className="absolute -inset-3 rounded-[28px]"
               style={{ background: 'linear-gradient(135deg, rgba(232,98,42,0.20), rgba(10,107,102,0.15), rgba(201,151,74,0.10))', filter: 'blur(12px)' }} />
 
-            <div className="relative rounded-[24px] overflow-hidden" style={{ boxShadow: '0 32px 80px rgba(17,17,24,0.20)' }}>
-              <img
-                src={CDN_IMAGES.goa}
-                alt="Beautiful travel destination"
-                className="w-full object-cover"
-                style={{ height: '420px' }}
-              />
+            <div className="relative rounded-[24px] overflow-hidden" style={{ boxShadow: '0 32px 80px rgba(17,17,24,0.20)', height: '420px' }}>
+
+              {/* ── Premium Ken Burns Slideshow ── */}
+              <AnimatePresence mode="sync">
+                {SLIDES.map((slide, i) => i === active && (
+                  <motion.div key={i} className="absolute inset-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1.1, ease: [0.4, 0, 0.2, 1] }}>
+                    <motion.img
+                      src={slide.src}
+                      alt={slide.name}
+                      className="w-full h-full object-cover"
+                      initial={{ scale: 1.07 }}
+                      animate={{ scale: 1.0 }}
+                      transition={{ duration: 5.5, ease: 'linear' }}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
               {/* Cinematic overlay */}
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(17,17,24,0.45) 0%, rgba(17,17,24,0.10) 40%, transparent 70%)' }} />
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ background: 'linear-gradient(to top, rgba(17,17,24,0.55) 0%, rgba(17,17,24,0.08) 45%, transparent 70%)' }} />
 
               {/* Destination label */}
               <div className="absolute bottom-4 left-4 right-4">
                 <div className="glass rounded-2xl px-4 py-3">
-                  <p className="text-white font-display font-semibold text-base">Goa, India</p>
-                  <p className="text-white/70 text-xs font-medium mt-0.5">India's Most Loved Beach Escape ✈️</p>
+                  <AnimatePresence mode="wait">
+                    <motion.div key={active}
+                      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}>
+                      <p className="text-white font-display font-semibold text-base">{SLIDES[active].name}</p>
+                      <p className="text-white/70 text-xs font-medium mt-0.5">{SLIDES[active].sub}</p>
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* Dot indicators */}
+                  <div className="flex items-center gap-1.5 mt-2.5">
+                    {SLIDES.map((_, i) => (
+                      <button key={i} type="button" onClick={() => setActive(i)}
+                        className="transition-all duration-500 rounded-full"
+                        style={{
+                          width: i === active ? 20 : 6,
+                          height: 6,
+                          background: i === active ? '#FFFFFF' : 'rgba(255,255,255,0.38)',
+                        }} />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
