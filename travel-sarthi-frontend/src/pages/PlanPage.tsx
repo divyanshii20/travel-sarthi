@@ -222,50 +222,59 @@ function PaceSelector({ value, name, register, accent = 'saffron' }: {
   );
 }
 
-// ─── Section wrapper — white elevated card with stagger ───────────────────────
+// ─── Flat section divider inside the frosted container ───────────────────────
 
-function FormSection({ step, icon, title, accent = 'saffron', delay = 0, children }: {
-  step: string; icon: React.ReactNode; title: string;
-  accent?: 'saffron' | 'teal'; delay?: number; children: React.ReactNode;
+function FormSection({ icon, title, accent = 'saffron', children }: {
+  icon: React.ReactNode; title: string; accent?: 'saffron' | 'teal'; children: React.ReactNode;
 }) {
-  const color  = accent === 'teal' ? '#0A6B66' : '#E8622A';
-  const bgTint = accent === 'teal' ? 'rgba(10,107,102,0.04)' : 'rgba(232,98,42,0.04)';
+  const color = accent === 'teal' ? '#0A6B66' : '#E8622A';
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 28 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="rounded-3xl overflow-hidden"
-      style={{
-        background: '#FFFFFF',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 6px 28px rgba(0,0,0,0.07)',
-        border: '1px solid rgba(0,0,0,0.055)',
-      }}>
-      {/* Card header strip */}
-      <div className="flex items-center gap-3 px-6 py-4"
-        style={{ background: bgTint, borderBottom: '1px solid rgba(0,0,0,0.05)', borderLeft: `3px solid ${color}` }}>
-        <span className="w-7 h-7 rounded-xl flex items-center justify-center text-white text-[11px] font-black shrink-0"
-          style={{ background: color, boxShadow: `0 3px 10px ${color}55` }}>
-          {step}
-        </span>
-        <span style={{ color }} className="shrink-0">{icon}</span>
-        <span className="text-[11px] font-bold uppercase tracking-[0.14em]"
-          style={{ color: 'var(--text-muted)' }}>{title}</span>
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="shrink-0" style={{ color }}>{icon}</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.16em]" style={{ color }}>{title}</span>
+        <div className="flex-1 h-px" style={{ background: 'rgba(0,0,0,0.08)' }} />
       </div>
-      {/* Content */}
-      <div className="px-6 py-5">{children}</div>
-    </motion.div>
+      {children}
+    </div>
   );
 }
 
-// ─── Premium form input label ─────────────────────────────────────────────────
+// ─── Field label ──────────────────────────────────────────────────────────────
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block text-[11px] font-bold uppercase tracking-[0.11em] mb-1.5"
+    <label className="block text-[10px] font-bold uppercase tracking-[0.10em] mb-1.5"
       style={{ color: 'var(--text-muted)' }}>
       {children}
     </label>
+  );
+}
+
+// ─── Frosted form container ───────────────────────────────────────────────────
+
+function GlassForm({ accent, delay, children }: {
+  accent: 'saffron' | 'teal'; delay?: number; children: React.ReactNode;
+}) {
+  const glow = accent === 'teal'
+    ? 'rgba(10,107,102,0.07)'
+    : 'rgba(232,98,42,0.07)';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 36, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.65, delay: delay ?? 0.14, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        background: `rgba(255,255,255,0.60)`,
+        backdropFilter: 'blur(32px)',
+        WebkitBackdropFilter: 'blur(32px)',
+        border: '1px solid rgba(255,255,255,0.88)',
+        borderRadius: 32,
+        padding: '36px 40px',
+        boxShadow: `0 2px 4px rgba(0,0,0,0.02), 0 20px 60px rgba(0,0,0,0.09), inset 0 1px 0 rgba(255,255,255,0.9)`,
+      }}>
+      {children}
+    </motion.div>
   );
 }
 
@@ -482,120 +491,122 @@ export function PlanPage() {
             </div>
 
             {/* ── Form body ── */}
-            <div className="page-container py-14" style={{ position: 'relative', zIndex: 1 }}>
-              <div className="max-w-[600px] mx-auto">
+            <div className="page-container py-12" style={{ position: 'relative', zIndex: 1 }}>
+              <div className="max-w-[680px] mx-auto">
 
-                {/* Page intro — dramatic */}
-                <motion.div className="mb-12"
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.16,1,0.3,1] }}>
-                  <motion.p
-                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.05 }}
-                    className="text-xs font-black uppercase tracking-[0.18em] mb-3 inline-flex items-center gap-2"
-                    style={{ color: '#E8622A' }}>
-                    <span style={{ display: 'inline-block', width: 20, height: 2, background: '#E8622A', borderRadius: 2 }} />
+                {/* Page intro */}
+                <motion.div className="mb-8"
+                  initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16,1,0.3,1] }}>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] mb-2 inline-flex items-center gap-2" style={{ color: '#E8622A' }}>
+                    <span style={{ display: 'inline-block', width: 18, height: 2, background: '#E8622A', borderRadius: 2 }} />
                     AI Itinerary Builder
-                  </motion.p>
-                  <h1 className="font-display font-black mb-3"
-                    style={{ fontSize: 'clamp(3rem, 5.5vw, 4.8rem)', letterSpacing: '-0.035em', lineHeight: 1.0, color: 'var(--text-primary)' }}>
-                    Let's plan your<br/>
-                    <span style={{ background: 'linear-gradient(135deg, #FF7A40 0%, #E8622A 60%, #C94E1A 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                  </p>
+                  <h1 className="font-display font-black mb-2"
+                    style={{ fontSize: 'clamp(2.6rem, 5vw, 4rem)', letterSpacing: '-0.032em', lineHeight: 1.05, color: 'var(--text-primary)' }}>
+                    Let's plan your{' '}
+                    <span style={{ background: 'linear-gradient(135deg,#FF7A40,#E8622A,#C94E1A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                       perfect trip.
                     </span>
                   </h1>
-                  <p className="text-[1.05rem]" style={{ color: 'var(--text-secondary)', lineHeight: 1.65, maxWidth: 420 }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.975rem', lineHeight: 1.6 }}>
                     Fill in your travel details — our AI crafts every day, hotel &amp; activity.
                   </p>
                 </motion.div>
 
-                <form onSubmit={formA.handleSubmit(onSubmitA)} className="space-y-5">
+                {/* ── Single frosted floating container ── */}
+                <GlassForm accent="saffron">
+                  <form onSubmit={formA.handleSubmit(onSubmitA)} className="space-y-7">
 
-                  <FormSection step="01" icon={<MapPin size={13}/>} title="Where are you going?" delay={0.12}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <FieldLabel>Destination *</FieldLabel>
-                        <input {...formA.register('destination', { required: 'Required' })}
-                          placeholder="Bali, Paris, Goa…" className="input w-full" />
-                        {formA.formState.errors.destination && (
-                          <p className="text-xs text-red-500 mt-1">{formA.formState.errors.destination.message}</p>
-                        )}
+                    {/* Row 1: Destination + Flying From */}
+                    <FormSection icon={<MapPin size={13}/>} title="Destination">
+                      <div className="grid grid-cols-[3fr_2fr] gap-3">
+                        <div>
+                          <FieldLabel>Where to? *</FieldLabel>
+                          <input {...formA.register('destination', { required: 'Required' })}
+                            placeholder="Bali, Paris, Goa…" className="input w-full" />
+                          {formA.formState.errors.destination && (
+                            <p className="text-xs text-red-500 mt-1">{formA.formState.errors.destination.message}</p>
+                          )}
+                        </div>
+                        <div>
+                          <FieldLabel>Flying From <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(opt.)</span></FieldLabel>
+                          <input {...formA.register('origin')} placeholder="Delhi, BOM, BLR…" className="input w-full" />
+                        </div>
                       </div>
-                      <div>
-                        <FieldLabel>Flying From <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></FieldLabel>
-                        <input {...formA.register('origin')} placeholder="Delhi, Mumbai, BLR…" className="input w-full" />
+                    </FormSection>
+
+                    {/* Row 2: Dates side by side */}
+                    <FormSection icon={<Calendar size={13}/>} title="Travel Dates">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <FieldLabel>Departure *</FieldLabel>
+                          <input type="date" {...formA.register('startDate', { required: 'Required' })}
+                            className="input w-full" min={new Date().toISOString().split('T')[0]} />
+                          {formA.formState.errors.startDate && (
+                            <p className="text-xs text-red-500 mt-1">{formA.formState.errors.startDate.message}</p>
+                          )}
+                        </div>
+                        <div>
+                          <FieldLabel>Return *</FieldLabel>
+                          <input type="date" {...formA.register('endDate', { required: 'Required' })}
+                            className="input w-full" min={formA.watch('startDate') || new Date().toISOString().split('T')[0]} />
+                          {formA.formState.errors.endDate && (
+                            <p className="text-xs text-red-500 mt-1">{formA.formState.errors.endDate.message}</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </FormSection>
+                    </FormSection>
 
-                  <FormSection step="02" icon={<Calendar size={13}/>} title="When are you travelling?" delay={0.20}>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <FieldLabel>Start Date *</FieldLabel>
-                        <input type="date" {...formA.register('startDate', { required: 'Required' })}
-                          className="input w-full" min={new Date().toISOString().split('T')[0]} />
-                        {formA.formState.errors.startDate && (
-                          <p className="text-xs text-red-500 mt-1">{formA.formState.errors.startDate.message}</p>
-                        )}
+                    {/* Row 3: Adults + Children + Budget in 3 columns */}
+                    <FormSection icon={<Users size={13}/>} title="Travellers & Budget">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <FieldLabel>Adults</FieldLabel>
+                          <input type="number" {...formA.register('adults', { min: 1, max: 9 })} min={1} max={9} className="input w-full" />
+                        </div>
+                        <div>
+                          <FieldLabel>Children</FieldLabel>
+                          <input type="number" {...formA.register('children', { min: 0, max: 9 })} min={0} max={9} className="input w-full" />
+                        </div>
+                        <div>
+                          <FieldLabel>Budget (₹)</FieldLabel>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold" style={{ color: 'var(--text-muted)', fontSize: 13 }}>₹</span>
+                            <input type="number" {...formA.register('budgetTotal', { required: true, min: 1000 })}
+                              step={1000} className="input w-full" placeholder="30000" style={{ paddingLeft: '1.4rem' }} />
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <FieldLabel>End Date *</FieldLabel>
-                        <input type="date" {...formA.register('endDate', { required: 'Required' })}
-                          className="input w-full" min={formA.watch('startDate') || new Date().toISOString().split('T')[0]} />
-                        {formA.formState.errors.endDate && (
-                          <p className="text-xs text-red-500 mt-1">{formA.formState.errors.endDate.message}</p>
-                        )}
+                    </FormSection>
+
+                    {/* Row 4: Travel Style + Custom Prefs */}
+                    <FormSection icon={<Zap size={13}/>} title="Travel Style">
+                      <StyleChips selected={stylesA} onToggle={toggleA} accent="saffron" />
+                      <div className="mt-3">
+                        <FieldLabel><Pencil size={10} style={{ display: 'inline', marginRight: 4 }} />Custom preferences <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></FieldLabel>
+                        <textarea value={customPrefsA} onChange={(e) => setCustomPrefsA(e.target.value)}
+                          placeholder="e.g. rooftop bars, hidden temples, cooking class…"
+                          rows={2} className="input w-full resize-none" style={{ lineHeight: '1.6' }} />
                       </div>
-                    </div>
-                  </FormSection>
+                    </FormSection>
 
-                  <FormSection step="03" icon={<Users size={13}/>} title="Who's travelling?" delay={0.28}>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <FieldLabel>Adults</FieldLabel>
-                        <input type="number" {...formA.register('adults', { min: 1, max: 9 })} min={1} max={9} className="input w-full" />
+                    {/* Row 5: Pace — 3 equal cards */}
+                    <FormSection icon={<Clock size={13}/>} title="Travel Pace">
+                      <PaceSelector value={formA.watch('pace')} name="pace" register={formA.register} accent="saffron" />
+                    </FormSection>
+
+                    {isError && (
+                      <div className="flex items-center gap-2.5 text-red-600 rounded-2xl p-3.5 text-sm"
+                        style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)' }}>
+                        <AlertCircle size={15} className="shrink-0"/> {error instanceof Error ? error.message : 'Failed to generate itinerary.'}
                       </div>
-                      <div>
-                        <FieldLabel>Children</FieldLabel>
-                        <input type="number" {...formA.register('children', { min: 0, max: 9 })} min={0} max={9} className="input w-full" />
-                      </div>
-                    </div>
-                  </FormSection>
+                    )}
 
-                  <FormSection step="04" icon={<Wallet size={13}/>} title="Total budget (₹ per person)" delay={0.36}>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-lg" style={{ color: 'var(--text-muted)' }}>₹</span>
-                      <input type="number" {...formA.register('budgetTotal', { required: true, min: 1000 })}
-                        step={1000} className="input w-full" placeholder="30,000" style={{ paddingLeft: '2rem' }} />
-                    </div>
-                    <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Includes flights, hotels and activities</p>
-                  </FormSection>
-
-                  <FormSection step="05" icon={<Zap size={13}/>} title="Travel style" delay={0.44}>
-                    <StyleChips selected={stylesA} onToggle={toggleA} accent="saffron" />
-                    <div className="mt-4">
-                      <FieldLabel><Pencil size={10} style={{ display: 'inline', marginRight: 4 }} />Your own preferences <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional, comma separated)</span></FieldLabel>
-                      <textarea value={customPrefsA} onChange={(e) => setCustomPrefsA(e.target.value)}
-                        placeholder="e.g. rooftop bars, street photography, hidden temples, cooking class…"
-                        rows={2} className="input w-full resize-none" style={{ lineHeight: '1.6' }} />
-                    </div>
-                  </FormSection>
-
-                  <FormSection step="06" icon={<Clock size={13}/>} title="Travel pace" delay={0.52}>
-                    <PaceSelector value={formA.watch('pace')} name="pace" register={formA.register} accent="saffron" />
-                  </FormSection>
-
-                  {isError && (
-                    <div className="flex items-center gap-2.5 text-red-600 rounded-2xl p-4 text-sm"
-                      style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)' }}>
-                      <AlertCircle size={16} className="shrink-0"/> {error instanceof Error ? error.message : 'Failed to generate itinerary.'}
-                    </div>
-                  )}
-
-                  <div className="pt-2">
                     <motion.button type="submit" disabled={isPending}
-                      whileHover={!isPending ? { scale: 1.015, boxShadow: '0 16px 48px rgba(232,98,42,0.42)' } : {}}
-                      whileTap={!isPending ? { scale: 0.985 } : {}}
+                      whileHover={!isPending ? { scale: 1.012, boxShadow: '0 18px 52px rgba(232,98,42,0.40)' } : {}}
+                      whileTap={!isPending ? { scale: 0.988 } : {}}
                       className="w-full flex items-center justify-center gap-2.5 py-4 text-base font-bold rounded-2xl text-white"
-                      style={{ background: isPending ? '#ccc' : 'linear-gradient(135deg, #FF7A40 0%, #E8622A 100%)', letterSpacing: '-0.01em', boxShadow: isPending ? 'none' : '0 8px 28px rgba(232,98,42,0.30)' }}>
+                      style={{ background: isPending ? '#ccc' : 'linear-gradient(135deg,#FF7A40,#E8622A)', letterSpacing: '-0.01em', boxShadow: isPending ? 'none' : '0 8px 28px rgba(232,98,42,0.28)' }}>
                       {isPending ? (
                         <><Loader2 size={18} className="animate-spin"/> Crafting your itinerary…</>
                       ) : (
@@ -603,13 +614,13 @@ export function PlanPage() {
                       )}
                     </motion.button>
                     {isPending && (
-                      <p className="text-center text-xs mt-3 animate-pulse" style={{ color: 'var(--text-muted)' }}>
+                      <p className="text-center text-xs animate-pulse" style={{ color: 'var(--text-muted)' }}>
                         Our AI is designing your perfect trip — this takes 10–20 seconds ✨
                       </p>
                     )}
-                  </div>
 
-                </form>
+                  </form>
+                </GlassForm>
               </div>
             </div>
           </motion.div>
@@ -622,7 +633,7 @@ export function PlanPage() {
           <motion.div key="form-b"
             initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-            style={{ minHeight: 'calc(100vh - 68px)', background: 'linear-gradient(160deg, #F6FDFB 0%, #E0F5F0 100%)' }}>
+            style={{ minHeight: 'calc(100vh - 68px)', background: 'linear-gradient(160deg, #F4FBF9 0%, #DDF0EB 100%)', position: 'relative' }}>
 
             {/* ── Slim back-nav strip ── */}
             <div style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 30 }}>
@@ -643,90 +654,94 @@ export function PlanPage() {
               </div>
             </div>
 
-            {/* ── Decorative background blobs ── */}
+            {/* ── Decorative blobs ── */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
               <div style={{ position: 'absolute', top: '10%', right: '-12%', width: '40vw', height: '40vw', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(10,107,102,0.10) 0%, transparent 70%)', filter: 'blur(60px)' }} />
               <div style={{ position: 'absolute', bottom: '10%', left: '-10%', width: '35vw', height: '35vw', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(18,168,153,0.08) 0%, transparent 70%)', filter: 'blur(80px)' }} />
             </div>
 
             {/* ── Form body ── */}
-            <div className="page-container py-14" style={{ position: 'relative', zIndex: 1 }}>
-              <div className="max-w-[600px] mx-auto">
+            <div className="page-container py-12" style={{ position: 'relative', zIndex: 1 }}>
+              <div className="max-w-[680px] mx-auto">
 
-                {/* Page intro — dramatic */}
-                <motion.div className="mb-12"
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.16,1,0.3,1] }}>
-                  <motion.p
-                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.05 }}
-                    className="text-xs font-black uppercase tracking-[0.18em] mb-3 inline-flex items-center gap-2"
-                    style={{ color: '#0A6B66' }}>
-                    <span style={{ display: 'inline-block', width: 20, height: 2, background: '#0A6B66', borderRadius: 2 }} />
+                {/* Page intro */}
+                <motion.div className="mb-8"
+                  initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16,1,0.3,1] }}>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] mb-2 inline-flex items-center gap-2" style={{ color: '#0A6B66' }}>
+                    <span style={{ display: 'inline-block', width: 18, height: 2, background: '#0A6B66', borderRadius: 2 }} />
                     AI Destination Finder
-                  </motion.p>
-                  <h1 className="font-display font-black mb-3"
-                    style={{ fontSize: 'clamp(3rem, 5.5vw, 4.8rem)', letterSpacing: '-0.035em', lineHeight: 1.0, color: 'var(--text-primary)' }}>
-                    Tell us your<br/>
-                    <span style={{ background: 'linear-gradient(135deg, #12A899 0%, #0A6B66 60%, #064E49 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                  </p>
+                  <h1 className="font-display font-black mb-2"
+                    style={{ fontSize: 'clamp(2.6rem, 5vw, 4rem)', letterSpacing: '-0.032em', lineHeight: 1.05, color: 'var(--text-primary)' }}>
+                    Tell us your{' '}
+                    <span style={{ background: 'linear-gradient(135deg,#12A899,#0A6B66,#064E49)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                       vibe.
                     </span>
                   </h1>
-                  <p className="text-[1.05rem]" style={{ color: 'var(--text-secondary)', lineHeight: 1.65, maxWidth: 420 }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.975rem', lineHeight: 1.6 }}>
                     Share your budget and mood — our AI finds the perfect destination for you.
                   </p>
                 </motion.div>
 
-                <form onSubmit={formB.handleSubmit(onSubmitB)} className="space-y-5">
+                {/* ── Single frosted floating container ── */}
+                <GlassForm accent="teal">
+                  <form onSubmit={formB.handleSubmit(onSubmitB)} className="space-y-7">
 
-                  <FormSection step="01" icon={<MapPin size={13}/>} title="Where are you flying from?" accent="teal" delay={0.12}>
-                    <FieldLabel>Departure city *</FieldLabel>
-                    <input {...formB.register('origin', { required: 'Please enter your departure city' })}
-                      placeholder="Delhi, Mumbai, Bangalore…" className="input w-full" />
-                    {formB.formState.errors.origin && (
-                      <p className="text-xs text-red-500 mt-1">{formB.formState.errors.origin.message}</p>
-                    )}
-                  </FormSection>
+                    {/* Row 1: Departure city (full width) */}
+                    <FormSection icon={<MapPin size={13}/>} title="Departure" accent="teal">
+                      <FieldLabel>Flying From *</FieldLabel>
+                      <input {...formB.register('origin', { required: 'Please enter your departure city' })}
+                        placeholder="Delhi, Mumbai, Bangalore…" className="input w-full" />
+                      {formB.formState.errors.origin && (
+                        <p className="text-xs text-red-500 mt-1">{formB.formState.errors.origin.message}</p>
+                      )}
+                    </FormSection>
 
-                  <FormSection step="02" icon={<Wallet size={13}/>} title="Budget & Duration" accent="teal" delay={0.20}>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <FieldLabel>Total budget (₹)</FieldLabel>
-                        <div className="relative">
-                          <IndianRupee size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-                          <input type="number" {...formB.register('budget', { min: 5000 })} step={1000} className="input w-full" placeholder="30,000" style={{ paddingLeft: '2rem' }} />
+                    {/* Row 2: Budget + Duration + (placeholder) */}
+                    <FormSection icon={<Wallet size={13}/>} title="Budget & Duration" accent="teal">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <FieldLabel>Total Budget (₹)</FieldLabel>
+                          <div className="relative">
+                            <IndianRupee size={12} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                            <input type="number" {...formB.register('budget', { min: 5000 })} step={1000}
+                              className="input w-full" placeholder="30,000" style={{ paddingLeft: '1.5rem' }} />
+                          </div>
+                        </div>
+                        <div>
+                          <FieldLabel>Duration (days)</FieldLabel>
+                          <input type="number" {...formB.register('durationDays', { min: 1, max: 30 })}
+                            min={1} max={30} className="input w-full" placeholder="5" />
                         </div>
                       </div>
-                      <div>
-                        <FieldLabel>Duration (days)</FieldLabel>
-                        <input type="number" {...formB.register('durationDays', { min: 1, max: 30 })} min={1} max={30} className="input w-full" />
+                    </FormSection>
+
+                    {/* Row 3: Style chips */}
+                    <FormSection icon={<Zap size={13}/>} title="Travel Style" accent="teal">
+                      <StyleChips selected={stylesB} onToggle={toggleB} accent="teal" />
+                      <div className="mt-3">
+                        <FieldLabel><Pencil size={10} style={{ display: 'inline', marginRight: 4 }} />Custom preferences <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></FieldLabel>
+                        <textarea value={customPrefsB} onChange={(e) => setCustomPrefsB(e.target.value)}
+                          placeholder="e.g. beach sunsets, trekking, street food…"
+                          rows={2} className="input w-full resize-none" style={{ lineHeight: '1.6' }} />
                       </div>
-                    </div>
-                  </FormSection>
+                    </FormSection>
 
-                  <FormSection step="03" icon={<Zap size={13}/>} title="Travel style" accent="teal" delay={0.28}>
-                    <StyleChips selected={stylesB} onToggle={toggleB} accent="teal" />
-                    <div className="mt-4">
-                      <FieldLabel><Pencil size={10} style={{ display: 'inline', marginRight: 4 }} />Your own preferences <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></FieldLabel>
-                      <textarea value={customPrefsB} onChange={(e) => setCustomPrefsB(e.target.value)}
-                        placeholder="e.g. beach sunsets, trekking, street food, temples…"
-                        rows={2} className="input w-full resize-none" style={{ lineHeight: '1.6' }} />
-                    </div>
-                  </FormSection>
+                    {/* Row 4: Pace */}
+                    <FormSection icon={<Clock size={13}/>} title="Travel Pace" accent="teal">
+                      <PaceSelector value={formB.watch('pace')} name="pace" register={formB.register} accent="teal" />
+                    </FormSection>
 
-                  <FormSection step="04" icon={<Clock size={13}/>} title="Travel pace" accent="teal" delay={0.36}>
-                    <PaceSelector value={formB.watch('pace')} name="pace" register={formB.register} accent="teal" />
-                  </FormSection>
-
-                  <div className="pt-2">
                     <motion.button type="submit"
-                      whileHover={{ scale: 1.015, boxShadow: '0 16px 48px rgba(10,107,102,0.36)' }}
-                      whileTap={{ scale: 0.985 }}
+                      whileHover={{ scale: 1.012, boxShadow: '0 18px 52px rgba(10,107,102,0.34)' }}
+                      whileTap={{ scale: 0.988 }}
                       className="w-full flex items-center justify-center gap-2.5 py-4 text-base font-bold rounded-2xl text-white"
-                      style={{ background: 'linear-gradient(135deg, #12A899 0%, #0A6B66 100%)', letterSpacing: '-0.01em', boxShadow: '0 8px 28px rgba(10,107,102,0.28)' }}>
+                      style={{ background: 'linear-gradient(135deg,#12A899,#0A6B66)', letterSpacing: '-0.01em', boxShadow: '0 8px 28px rgba(10,107,102,0.26)' }}>
                       <Compass size={18}/> Discover My Destination <ArrowRight size={18}/>
                     </motion.button>
-                  </div>
 
-                </form>
+                  </form>
+                </GlassForm>
               </div>
             </div>
           </motion.div>
