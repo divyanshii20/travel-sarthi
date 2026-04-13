@@ -222,37 +222,47 @@ function PaceSelector({ value, name, register, accent = 'saffron' }: {
   );
 }
 
-// ─── Section wrapper — premium numbered design ────────────────────────────────
+// ─── Section wrapper — white elevated card with stagger ───────────────────────
 
-function FormSection({ step, icon, title, accent = 'saffron', children }: {
-  step: string; icon: React.ReactNode; title: string; accent?: 'saffron' | 'teal'; children: React.ReactNode;
+function FormSection({ step, icon, title, accent = 'saffron', delay = 0, children }: {
+  step: string; icon: React.ReactNode; title: string;
+  accent?: 'saffron' | 'teal'; delay?: number; children: React.ReactNode;
 }) {
-  const color = accent === 'teal' ? '#0A6B66' : '#E8622A';
+  const color  = accent === 'teal' ? '#0A6B66' : '#E8622A';
+  const bgTint = accent === 'teal' ? 'rgba(10,107,102,0.04)' : 'rgba(232,98,42,0.04)';
   return (
-    <div className="space-y-4">
-      {/* Section header */}
-      <div className="flex items-center gap-3">
-        <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0"
-          style={{ background: color }}>
+    <motion.div
+      initial={{ opacity: 0, y: 28 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.55, delay, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-3xl overflow-hidden"
+      style={{
+        background: '#FFFFFF',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 6px 28px rgba(0,0,0,0.07)',
+        border: '1px solid rgba(0,0,0,0.055)',
+      }}>
+      {/* Card header strip */}
+      <div className="flex items-center gap-3 px-6 py-4"
+        style={{ background: bgTint, borderBottom: '1px solid rgba(0,0,0,0.05)', borderLeft: `3px solid ${color}` }}>
+        <span className="w-7 h-7 rounded-xl flex items-center justify-center text-white text-[11px] font-black shrink-0"
+          style={{ background: color, boxShadow: `0 3px 10px ${color}55` }}>
           {step}
         </span>
-        <span className="flex items-center gap-1.5" style={{ color }}>
-          {icon}
-          <span className="text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--text-muted)' }}>{title}</span>
-        </span>
-        <div className="flex-1 h-px" style={{ background: 'var(--border-card)' }} />
+        <span style={{ color }} className="shrink-0">{icon}</span>
+        <span className="text-[11px] font-bold uppercase tracking-[0.14em]"
+          style={{ color: 'var(--text-muted)' }}>{title}</span>
       </div>
-      {/* Content indented under step number */}
-      <div className="pl-10">{children}</div>
-    </div>
+      {/* Content */}
+      <div className="px-6 py-5">{children}</div>
+    </motion.div>
   );
 }
 
-// ─── Premium form input row label ─────────────────────────────────────────────
+// ─── Premium form input label ─────────────────────────────────────────────────
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block text-[11px] font-semibold uppercase tracking-[0.1em] mb-1.5"
+    <label className="block text-[11px] font-bold uppercase tracking-[0.11em] mb-1.5"
       style={{ color: 'var(--text-muted)' }}>
       {children}
     </label>
@@ -447,41 +457,59 @@ export function PlanPage() {
             style={{ minHeight: 'calc(100vh - 68px)', background: 'linear-gradient(160deg, #FDFAF6 0%, #F5EDE0 100%)' }}>
 
             {/* ── Slim back-nav strip ── */}
-            <div style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(14px)', borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+            <div style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 30 }}>
               <div className="page-container flex items-center justify-between py-3.5">
                 <button type="button" onClick={() => setSelectedMode(null)}
-                  className="inline-flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-70"
+                  className="inline-flex items-center gap-2 text-sm font-semibold transition-all hover:gap-3"
                   style={{ color: 'var(--text-muted)' }}>
                   <ArrowLeft size={15} /> Back
                 </button>
                 <div className="flex items-center gap-2.5">
-                  <span className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#E8622A' }}>
-                    <Plane size={11} color="white" />
+                  <span className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#FF7A40,#E8622A)', boxShadow: '0 3px 10px rgba(232,98,42,0.35)' }}>
+                    <Plane size={12} color="white" />
                   </span>
-                  <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Mode A — I Know Where I'm Going</span>
+                  <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Mode A</span>
+                  <span className="text-sm" style={{ color: 'var(--text-muted)' }}>— I Know Where I'm Going</span>
                 </div>
                 <div style={{ width: 80 }} />
               </div>
             </div>
 
-            {/* ── Form body ── */}
-            <div className="page-container py-12">
-              <div className="max-w-[580px] mx-auto">
+            {/* ── Decorative background blobs ── */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+              <div style={{ position: 'absolute', top: '8%', right: '-10%', width: '40vw', height: '40vw', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(232,98,42,0.10) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+              <div style={{ position: 'absolute', bottom: '15%', left: '-8%', width: '35vw', height: '35vw', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(255,165,100,0.08) 0%, transparent 70%)', filter: 'blur(80px)' }} />
+            </div>
 
-                {/* Page intro */}
-                <div className="mb-10">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] mb-2" style={{ color: '#E8622A' }}>AI Itinerary Builder</p>
-                  <h1 className="font-display font-bold text-3xl mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                    Let's plan your perfect trip.
+            {/* ── Form body ── */}
+            <div className="page-container py-14" style={{ position: 'relative', zIndex: 1 }}>
+              <div className="max-w-[600px] mx-auto">
+
+                {/* Page intro — dramatic */}
+                <motion.div className="mb-12"
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.16,1,0.3,1] }}>
+                  <motion.p
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.05 }}
+                    className="text-xs font-black uppercase tracking-[0.18em] mb-3 inline-flex items-center gap-2"
+                    style={{ color: '#E8622A' }}>
+                    <span style={{ display: 'inline-block', width: 20, height: 2, background: '#E8622A', borderRadius: 2 }} />
+                    AI Itinerary Builder
+                  </motion.p>
+                  <h1 className="font-display font-black mb-3"
+                    style={{ fontSize: 'clamp(3rem, 5.5vw, 4.8rem)', letterSpacing: '-0.035em', lineHeight: 1.0, color: 'var(--text-primary)' }}>
+                    Let's plan your<br/>
+                    <span style={{ background: 'linear-gradient(135deg, #FF7A40 0%, #E8622A 60%, #C94E1A 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                      perfect trip.
+                    </span>
                   </h1>
-                  <p className="text-base" style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <p className="text-[1.05rem]" style={{ color: 'var(--text-secondary)', lineHeight: 1.65, maxWidth: 420 }}>
                     Fill in your travel details — our AI crafts every day, hotel &amp; activity.
                   </p>
-                </div>
+                </motion.div>
 
-                <form onSubmit={formA.handleSubmit(onSubmitA)} className="space-y-9">
+                <form onSubmit={formA.handleSubmit(onSubmitA)} className="space-y-5">
 
-                  <FormSection step="01" icon={<MapPin size={13}/>} title="Where are you going?">
+                  <FormSection step="01" icon={<MapPin size={13}/>} title="Where are you going?" delay={0.12}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <FieldLabel>Destination *</FieldLabel>
@@ -498,7 +526,7 @@ export function PlanPage() {
                     </div>
                   </FormSection>
 
-                  <FormSection step="02" icon={<Calendar size={13}/>} title="When are you travelling?">
+                  <FormSection step="02" icon={<Calendar size={13}/>} title="When are you travelling?" delay={0.20}>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <FieldLabel>Start Date *</FieldLabel>
@@ -519,7 +547,7 @@ export function PlanPage() {
                     </div>
                   </FormSection>
 
-                  <FormSection step="03" icon={<Users size={13}/>} title="Who's travelling?">
+                  <FormSection step="03" icon={<Users size={13}/>} title="Who's travelling?" delay={0.28}>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <FieldLabel>Adults</FieldLabel>
@@ -532,7 +560,7 @@ export function PlanPage() {
                     </div>
                   </FormSection>
 
-                  <FormSection step="04" icon={<Wallet size={13}/>} title="Total budget (₹ per person)">
+                  <FormSection step="04" icon={<Wallet size={13}/>} title="Total budget (₹ per person)" delay={0.36}>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-lg" style={{ color: 'var(--text-muted)' }}>₹</span>
                       <input type="number" {...formA.register('budgetTotal', { required: true, min: 1000 })}
@@ -541,7 +569,7 @@ export function PlanPage() {
                     <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Includes flights, hotels and activities</p>
                   </FormSection>
 
-                  <FormSection step="05" icon={<Zap size={13}/>} title="Travel style">
+                  <FormSection step="05" icon={<Zap size={13}/>} title="Travel style" delay={0.44}>
                     <StyleChips selected={stylesA} onToggle={toggleA} accent="saffron" />
                     <div className="mt-4">
                       <FieldLabel><Pencil size={10} style={{ display: 'inline', marginRight: 4 }} />Your own preferences <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional, comma separated)</span></FieldLabel>
@@ -551,7 +579,7 @@ export function PlanPage() {
                     </div>
                   </FormSection>
 
-                  <FormSection step="06" icon={<Clock size={13}/>} title="Travel pace">
+                  <FormSection step="06" icon={<Clock size={13}/>} title="Travel pace" delay={0.52}>
                     <PaceSelector value={formA.watch('pace')} name="pace" register={formA.register} accent="saffron" />
                   </FormSection>
 
@@ -597,41 +625,59 @@ export function PlanPage() {
             style={{ minHeight: 'calc(100vh - 68px)', background: 'linear-gradient(160deg, #F6FDFB 0%, #E0F5F0 100%)' }}>
 
             {/* ── Slim back-nav strip ── */}
-            <div style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(14px)', borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+            <div style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 30 }}>
               <div className="page-container flex items-center justify-between py-3.5">
                 <button type="button" onClick={() => setSelectedMode(null)}
-                  className="inline-flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-70"
+                  className="inline-flex items-center gap-2 text-sm font-semibold transition-all hover:gap-3"
                   style={{ color: 'var(--text-muted)' }}>
                   <ArrowLeft size={15} /> Back
                 </button>
                 <div className="flex items-center gap-2.5">
-                  <span className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#0A6B66' }}>
-                    <Compass size={11} color="white" />
+                  <span className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#12A899,#0A6B66)', boxShadow: '0 3px 10px rgba(10,107,102,0.35)' }}>
+                    <Compass size={12} color="white" />
                   </span>
-                  <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Mode B — Surprise Me</span>
+                  <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Mode B</span>
+                  <span className="text-sm" style={{ color: 'var(--text-muted)' }}>— Surprise Me</span>
                 </div>
                 <div style={{ width: 80 }} />
               </div>
             </div>
 
-            {/* ── Form body ── */}
-            <div className="page-container py-12">
-              <div className="max-w-[580px] mx-auto">
+            {/* ── Decorative background blobs ── */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+              <div style={{ position: 'absolute', top: '10%', right: '-12%', width: '40vw', height: '40vw', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(10,107,102,0.10) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+              <div style={{ position: 'absolute', bottom: '10%', left: '-10%', width: '35vw', height: '35vw', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(18,168,153,0.08) 0%, transparent 70%)', filter: 'blur(80px)' }} />
+            </div>
 
-                {/* Page intro */}
-                <div className="mb-10">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] mb-2" style={{ color: '#0A6B66' }}>AI Destination Finder</p>
-                  <h1 className="font-display font-bold text-3xl mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                    Tell us your vibe.
+            {/* ── Form body ── */}
+            <div className="page-container py-14" style={{ position: 'relative', zIndex: 1 }}>
+              <div className="max-w-[600px] mx-auto">
+
+                {/* Page intro — dramatic */}
+                <motion.div className="mb-12"
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.16,1,0.3,1] }}>
+                  <motion.p
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.05 }}
+                    className="text-xs font-black uppercase tracking-[0.18em] mb-3 inline-flex items-center gap-2"
+                    style={{ color: '#0A6B66' }}>
+                    <span style={{ display: 'inline-block', width: 20, height: 2, background: '#0A6B66', borderRadius: 2 }} />
+                    AI Destination Finder
+                  </motion.p>
+                  <h1 className="font-display font-black mb-3"
+                    style={{ fontSize: 'clamp(3rem, 5.5vw, 4.8rem)', letterSpacing: '-0.035em', lineHeight: 1.0, color: 'var(--text-primary)' }}>
+                    Tell us your<br/>
+                    <span style={{ background: 'linear-gradient(135deg, #12A899 0%, #0A6B66 60%, #064E49 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                      vibe.
+                    </span>
                   </h1>
-                  <p className="text-base" style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <p className="text-[1.05rem]" style={{ color: 'var(--text-secondary)', lineHeight: 1.65, maxWidth: 420 }}>
                     Share your budget and mood — our AI finds the perfect destination for you.
                   </p>
-                </div>
+                </motion.div>
 
-                <form onSubmit={formB.handleSubmit(onSubmitB)} className="space-y-9">
+                <form onSubmit={formB.handleSubmit(onSubmitB)} className="space-y-5">
 
-                  <FormSection step="01" icon={<MapPin size={13}/>} title="Where are you flying from?" accent="teal">
+                  <FormSection step="01" icon={<MapPin size={13}/>} title="Where are you flying from?" accent="teal" delay={0.12}>
                     <FieldLabel>Departure city *</FieldLabel>
                     <input {...formB.register('origin', { required: 'Please enter your departure city' })}
                       placeholder="Delhi, Mumbai, Bangalore…" className="input w-full" />
@@ -640,7 +686,7 @@ export function PlanPage() {
                     )}
                   </FormSection>
 
-                  <FormSection step="02" icon={<Wallet size={13}/>} title="Budget & Duration" accent="teal">
+                  <FormSection step="02" icon={<Wallet size={13}/>} title="Budget & Duration" accent="teal" delay={0.20}>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <FieldLabel>Total budget (₹)</FieldLabel>
@@ -656,7 +702,7 @@ export function PlanPage() {
                     </div>
                   </FormSection>
 
-                  <FormSection step="03" icon={<Zap size={13}/>} title="Travel style" accent="teal">
+                  <FormSection step="03" icon={<Zap size={13}/>} title="Travel style" accent="teal" delay={0.28}>
                     <StyleChips selected={stylesB} onToggle={toggleB} accent="teal" />
                     <div className="mt-4">
                       <FieldLabel><Pencil size={10} style={{ display: 'inline', marginRight: 4 }} />Your own preferences <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></FieldLabel>
@@ -666,7 +712,7 @@ export function PlanPage() {
                     </div>
                   </FormSection>
 
-                  <FormSection step="04" icon={<Clock size={13}/>} title="Travel pace" accent="teal">
+                  <FormSection step="04" icon={<Clock size={13}/>} title="Travel pace" accent="teal" delay={0.36}>
                     <PaceSelector value={formB.watch('pace')} name="pace" register={formB.register} accent="teal" />
                   </FormSection>
 
