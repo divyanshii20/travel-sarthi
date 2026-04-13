@@ -6,36 +6,77 @@ import { containerVariants, itemVariants, scaleIn } from '@/lib/animations';
 import { CDN_IMAGES } from '@/constants/cdnImages';
 
 const SLIDES = [
-  { src: CDN_IMAGES.goa,      name: 'Goa, India',           sub: "India's Most Loved Beach Escape ✈️" },
-  { src: CDN_IMAGES.kerala,   name: 'Kerala, India',         sub: "God's Own Country 🌿" },
-  { src: CDN_IMAGES.andaman,  name: 'Andaman Islands',       sub: 'Crystal Waters & White Sands 🐠' },
-  { src: CDN_IMAGES.himachal, name: 'Himachal Pradesh',      sub: 'Peaks, Valleys & Starlit Skies 🏔️' },
-  { src: CDN_IMAGES.rajasthan,name: 'Rajasthan, India',      sub: 'Land of Kings & Colours 🏰' },
-  { src: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800&q=80',
-                               name: 'Santorini, Greece',     sub: 'Sunsets Over the Aegean ☀️' },
+  { src: CDN_IMAGES.goa,      name: 'Goa, India',        sub: "India's Most Loved Beach Escape ✈️" },
+  { src: CDN_IMAGES.kerala,   name: 'Kerala, India',      sub: "God's Own Country 🌿" },
+  { src: CDN_IMAGES.andaman,  name: 'Andaman Islands',    sub: 'Crystal Waters & White Sands 🐠' },
+  { src: CDN_IMAGES.himachal, name: 'Himachal Pradesh',   sub: 'Peaks, Valleys & Starlit Skies 🏔️' },
+  {
+    src: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?w=800&q=80',
+    name: 'Rajasthan, India',
+    sub: 'Land of Kings & Golden Forts 🏰',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800&q=80',
+    name: 'Santorini, Greece',
+    sub: 'Sunsets Over the Aegean ☀️',
+  },
 ];
 
-const floatingCards = [
+// Per-slide content for the 3 floating cards
+const SLIDE_CARDS = [
+  // Goa
+  [
+    { label: '₹2,400 saved',  sub: 'DEL → GOA today' },
+    { label: 'Price at Low',  sub: 'Best time to buy ↑' },
+    { label: '3h 25m direct', sub: 'Fastest route' },
+  ],
+  // Kerala
+  [
+    { label: '₹3,100 saved',  sub: 'BOM → COK today' },
+    { label: 'Trending Now',  sub: 'Most booked this week' },
+    { label: '2h 10m direct', sub: 'Fastest route' },
+  ],
+  // Andaman
+  [
+    { label: '₹4,200 saved',  sub: 'DEL → IXZ today' },
+    { label: 'Limited Seats', sub: 'Book before it\'s gone' },
+    { label: '3h 55m direct', sub: 'Fastest route' },
+  ],
+  // Himachal
+  [
+    { label: '₹1,800 saved',  sub: 'DEL → KUU today' },
+    { label: 'Price at Low',  sub: 'Best time to book ↑' },
+    { label: '1h 35m direct', sub: 'Fastest route' },
+  ],
+  // Rajasthan
+  [
+    { label: '₹2,600 saved',   sub: 'BOM → JAI today' },
+    { label: 'Price Dropping', sub: 'Prices fell 18% ↓' },
+    { label: '1h 20m direct',  sub: 'Fastest route' },
+  ],
+  // Santorini
+  [
+    { label: '₹18,500 saved',   sub: 'DEL → ATH today' },
+    { label: 'Best Season',     sub: 'Perfect weather now ☀️' },
+    { label: '9h 30m via AMS',  sub: 'Best connection' },
+  ],
+];
+
+const floatingCardsMeta = [
   {
     icon: <TrendingDown size={15} className="text-green-500" />,
-    label: '₹2,400 saved',
-    sub: 'DEL → GOA today',
     delay: 0,
     pos: { top: '10%', right: '-6%' },
     float: 'animate-float',
   },
   {
     icon: <Sparkles size={15} style={{ color: '#E8622A' }} />,
-    label: 'Price at Low',
-    sub: 'Best time to buy ↑',
     delay: 0.18,
     pos: { top: '44%', left: '-14%' },
     float: 'animate-float-2',
   },
   {
     icon: <Clock size={15} style={{ color: '#0A6B66' }} />,
-    label: '3h 25m direct',
-    sub: 'Fastest route',
     delay: 0.36,
     pos: { bottom: '12%', right: '-4%' },
     float: 'animate-float-3',
@@ -207,8 +248,8 @@ export function HeroSection() {
             </div>
           </motion.div>
 
-          {/* Floating glass cards */}
-          {floatingCards.map((card, i) => (
+          {/* Floating glass cards — content changes per slide */}
+          {floatingCardsMeta.map((card, i) => (
             <motion.div
               key={i}
               className={`absolute card-glass px-3.5 py-3 flex items-center gap-3 ${card.float}`}
@@ -221,9 +262,19 @@ export function HeroSection() {
                 style={{ background: 'rgba(255,255,255,0.80)', boxShadow: '0 2px 8px rgba(17,17,24,0.08)' }}>
                 {card.icon}
               </div>
-              <div>
-                <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{card.label}</p>
-                <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{card.sub}</p>
+              <div className="overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.div key={`${i}-${active}`}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}>
+                    <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
+                      {SLIDE_CARDS[active][i].label}
+                    </p>
+                    <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      {SLIDE_CARDS[active][i].sub}
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </motion.div>
           ))}
