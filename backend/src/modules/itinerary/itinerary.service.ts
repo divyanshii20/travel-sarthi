@@ -18,6 +18,10 @@ import type {
   ItinerarySlot,
 } from '../../../../../travel-sarthi-shared-types/src';
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TYPES
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
 type NormalizedGenerateRequest = {
   destination: string;
   flyingFrom: string;
@@ -153,6 +157,40 @@ type GeminiItineraryResponse = {
   };
 };
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GROQ CLIENT (Llama 3.1 70B — lightweight tasks)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+async function callGroq(systemPrompt: string, userPrompt: string, maxTokens = 200): Promise<string> {
+  if (env.GROQ_API_KEY === 'placeholder' || env.GROQ_API_KEY.trim().length === 0) return '';
+  try {
+    const res = await axios.post(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        model: 'llama-3.1-70b-versatile',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.5,
+        max_tokens: maxTokens,
+      },
+      {
+        headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+        timeout: 10000,
+      },
+    );
+    return (res.data?.choices?.[0]?.message?.content ?? '').trim();
+  } catch (err) {
+    logger.warn({ err }, 'Groq call failed');
+    return '';
+  }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PUBLIC API
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
 export async function generateItinerary(
   dto: GenerateItineraryRequestDTO | Record<string, unknown>,
   userId: string,
@@ -182,7 +220,7 @@ export async function generateItinerary(
             responseMimeType: 'application/json',
           },
         },
-        { timeout: 45000 },
+        { timeout: 60000 },
       );
 
       const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -198,6 +236,16 @@ export async function generateItinerary(
     }
 
     const itinerary = await transformGeminiResponse(parsed, normalized, destinationContext);
+
+    // Generate premium title via Groq
+    const groqTitle = await callGroq(
+      'You generate catchy, premium travel itinerary titles. Return ONLY the title text, nothing else. Max 8 words.',
+      `${itinerary.durationDays}-day trip to ${parsed.destination}, ${parsed.country} for ${normalized.adults + normalized.children} travelers. Style: ${normalized.travelStyle.join(', ')}. Budget tier: ${parsed.trip_summary.budget_tier}.`,
+      50,
+    );
+    if (groqTitle.length > 3) {
+      itinerary.title = groqTitle.replace(/^["']|["']$/g, '');
+    }
 
     const [savedRow] = await db.insert(savedItineraries).values({
       userId,
@@ -232,6 +280,10 @@ export async function getSavedItinerary(id: string, userId: string): Promise<Iti
   return row.itineraryJson as Itinerary;
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   NORMALIZE REQUEST
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
 function normalizeRequest(input: GenerateItineraryRequestDTO | Record<string, unknown>): NormalizedGenerateRequest {
   const record = input as Record<string, unknown>;
 
@@ -257,25 +309,23 @@ function normalizeRequest(input: GenerateItineraryRequestDTO | Record<string, un
   };
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DESTINATION CONTEXT FROM DB
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
 async function getDestinationContext(destinationName: string) {
   const slugGuess = destinationName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const [destination] = await db
     .select()
     .from(destinations)
-    .where(
-      and(
-        eq(destinations.slug, slugGuess),
-      ),
-    )
+    .where(eq(destinations.slug, slugGuess))
     .limit(1);
 
   const resolvedDestination = destination
     ?? (await db.select().from(destinations).where(eq(destinations.name, destinationName)).limit(1))[0]
     ?? null;
 
-  if (resolvedDestination == null) {
-    return null;
-  }
+  if (resolvedDestination == null) return null;
 
   const pois = await db
     .select()
@@ -298,6 +348,10 @@ async function getDestinationContext(destinationName: string) {
   };
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   WORLD-CLASS SYSTEM PROMPT (Gemini)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
 function buildElitePrompt(request: NormalizedGenerateRequest, destinationContext: Awaited<ReturnType<typeof getDestinationContext>>) {
   const durationDays = getDurationDays(request.departureDate, request.returnDate);
   const totalTravelers = request.adults + request.children;
@@ -306,171 +360,132 @@ function buildElitePrompt(request: NormalizedGenerateRequest, destinationContext
     : request.budgetInr;
 
   const destinationSummary = destinationContext == null
-    ? 'No curated destination context was available. Infer carefully from general travel knowledge.'
+    ? 'No curated destination data available. Use your comprehensive travel knowledge.'
     : [
-      `Known destination record for ${destinationContext.name}, ${destinationContext.country}.`,
-      `Visa status: ${destinationContext.visaStatus ?? 'unknown'}`,
-      `Budget/day estimates in INR: budget=${destinationContext.budgetPerDay ?? 'n/a'}, mid=${destinationContext.budgetMidPerDay ?? 'n/a'}, luxury=${destinationContext.budgetLuxuryPerDay ?? 'n/a'}`,
-      `Best months: ${(destinationContext.bestMonths ?? []).join(', ')}`,
-      `Direct flight cities: ${(destinationContext.directFlightCities ?? []).join(', ')}`,
-      `Weather summary: ${destinationContext.weatherSummary ?? 'n/a'}`,
-      `Safety score: ${destinationContext.safetyScore}`,
-      `Top POIs:\n${destinationContext.pois.map((poi) => `- ${poi.name} | ${poi.category ?? 'General'} | priority ${poi.priority} | avg ${poi.avgVisitHours ?? '?'}h | best ${poi.bestTimeOfDay ?? 'Any'} | fee ${poi.entryFeeInr ?? 0} INR`).join('\n')}`,
-    ].join('\n');
+      `=== DESTINATION INTELLIGENCE ===`,
+      `${destinationContext.name}, ${destinationContext.country} (${destinationContext.flagEmoji ?? ''})`,
+      `Visa: ${destinationContext.visaStatus ?? 'check'} | Safety: ${destinationContext.safetyScore}/100 | Weather: ${destinationContext.weatherScore}/100`,
+      `Budget tiers INR/day: budget=${destinationContext.budgetPerDay ?? '?'}, mid=${destinationContext.budgetMidPerDay ?? '?'}, luxury=${destinationContext.budgetLuxuryPerDay ?? '?'}`,
+      `Best months: [${(destinationContext.bestMonths ?? []).join(',')}] | Avoid: [${(destinationContext.avoidMonths ?? []).join(',')}]`,
+      `Direct flights from: ${(destinationContext.directFlightCities ?? []).join(', ') || 'none listed'}`,
+      `Weather: ${destinationContext.weatherSummary ?? 'n/a'}`,
+      `Currency: ${destinationContext.currency} | Timezone: ${destinationContext.timezoneName}`,
+      destinationContext.pois.length > 0
+        ? `Top POIs:\n${destinationContext.pois.map((p) => `  • ${p.name} (${p.category ?? 'General'}) — ${p.avgVisitHours ?? '?'}h visit, ₹${p.entryFeeInr ?? 0} entry, best: ${p.bestTimeOfDay ?? 'any'}`).join('\n')}`
+        : '',
+    ].filter(Boolean).join('\n');
 
-  return [
-    'You are an elite travel planner with encyclopedic knowledge of every destination worldwide.',
-    'You create hyper-accurate, logistically perfect itineraries for Indian travelers.',
-    '',
-    'CRITICAL ACCURACY RULES:',
-    '1. All travel times must reflect real-world conditions.',
-    '2. Cluster activities geographically by district or zone.',
-    '3. Respect opening hours and likely closures.',
-    '4. Use INR and realistic per-person costs.',
-    '5. Max 4-5 major attractions per day.',
-    '6. Always include travel buffers and realistic meal durations.',
-    '7. Children slow the pace and increase transition time.',
-    '',
-    `Trip request:`,
-    `Destination: ${request.destination}`,
-    `Flying from: ${request.flyingFrom || 'Not specified'}`,
-    `Departure date: ${request.departureDate}`,
-    `Return date: ${request.returnDate}`,
-    `Duration days: ${durationDays}`,
-    `Adults: ${request.adults}`,
-    `Children: ${request.children}`,
-    `Budget total INR: ${request.budgetInr}`,
-    `Budget per person per day INR: ${budgetPerPersonPerDay}`,
-    `Travel style: ${request.travelStyle.join(', ')}`,
-    `Custom preferences: ${request.customPreferences || 'None'}`,
-    `Mode: ${request.mode}`,
-    '',
-    destinationSummary,
-    '',
-    'Return ONLY valid JSON with this exact top-level structure and snake_case keys:',
-    JSON.stringify({
-      destination: 'string',
-      country: 'string',
-      flag: 'emoji',
-      trip_summary: {
-        total_days: durationDays,
-        total_travelers: totalTravelers,
-        budget_tier: 'Budget | Mid-range | Luxury',
-        estimated_total_inr: request.budgetInr,
-        estimated_per_person_inr: Math.round(request.budgetInr / Math.max(totalTravelers, 1)),
-        best_currency: 'string',
-        exchange_rate_note: 'string',
-        weather_during_trip: 'string',
-        language_tip: 'string',
-        emergency_number: 'string',
-        indian_embassy: 'string',
-      },
-      pre_trip_checklist: ['string'],
-      days: [{
-        day_number: 1,
-        date: request.departureDate,
-        day_label: 'string',
-        theme: 'string',
-        neighborhood_focus: 'string',
-        weather_expected: 'string',
-        slots: [{
-          slot_id: 'd1_s1',
-          time_start: '14:00',
-          time_end: '15:30',
-          duration_min: 90,
-          type: 'travel',
-          activity: 'Airport Transfer to Hotel',
-          location: 'string',
-          transport_mode: 'string',
-          transport_detail: 'string',
-          distance_km: 0,
-          cost_inr_per_person: 0,
-          cost_inr_total: 0,
-          notes: 'string',
-          tip: 'string',
-          booking_required: false,
-          booking_tip: 'string',
-          map_query: 'string',
-        }],
-        day_budget_summary: {
-          accommodation_inr: 0,
-          food_inr: 0,
-          transport_inr: 0,
-          activities_inr: 0,
-          misc_inr: 0,
-          day_total_inr: 0,
-          day_total_per_person_inr: 0,
-        },
-        day_tips: ['string'],
-      }],
-      hotels: [{
-        name: 'string',
-        area: 'string',
-        tier: 'Budget | Mid | Luxury',
-        why_here: 'string',
-        price_inr_per_night: 0,
-        booking_platform: 'string',
-        check_in_day: 1,
-        check_out_day: 2,
-        nights: 1,
-      }],
-      transport_summary: {
-        airport_transfer_in: { mode: 'string', cost_inr: 0, duration_min: 0 },
-        airport_transfer_out: { mode: 'string', cost_inr: 0, duration_min: 0, depart_time: 'string' },
-        day_passes: ['string'],
-        app_downloads: ['string'],
-      },
-      budget_breakdown: {
-        flights_inr: 0,
-        accommodation_total_inr: 0,
-        food_total_inr: 0,
-        transport_local_inr: 0,
-        activities_inr: 0,
-        shopping_buffer_inr: 0,
-        visa_fee_inr: 0,
-        misc_contingency_inr: 0,
-        grand_total_inr: 0,
-        per_person_inr: 0,
-        vs_budget: 'within',
-        savings_tips: ['string'],
-      },
-      experiences_by_category: {
-        must_do: ['string'],
-        food_trail: ['string'],
-        off_beaten_path: ['string'],
-        splurge_if_possible: ['string'],
-        skip: ['string'],
-      },
-      day_trips: [{
-        name: 'string',
-        distance_km: 0,
-        duration_hours: 0,
-        transport: 'string',
-        best_day: 'string',
-        cost_inr_per_person: 0,
-        highlights: ['string'],
-      }],
-      cultural_guide: {
-        dos: ['string'],
-        donts: ['string'],
-        scams_to_avoid: ['string'],
-        indian_specific: ['string'],
-      },
-      packing_list: {
-        essentials: ['string'],
-        clothing: ['string'],
-        health: ['string'],
-        tech: ['string'],
-      },
-    }),
-  ].join('\n');
+  return `You are the world's #1 elite travel architect for Indian travelers. You have visited every destination personally. You know every hidden alley, the best local restaurant that tourists never find, the exact time to visit each monument to avoid crowds, and the cultural nuances that transform a good trip into an unforgettable journey.
+
+=== YOUR EXPERTISE ===
+• Deep knowledge of every destination's neighborhoods, zones, and micro-regions
+• Expert at geographic clustering — you NEVER schedule activities that require unnecessary backtracking
+• Cultural intelligence — you understand what Indian travelers specifically need (vegetarian options, spice levels, language barriers, safety concerns, tipping customs, dress codes)
+• Budget mastery — you know real costs in INR with uncanny accuracy
+• Seasonal intelligence — you know weather patterns, festival calendars, peak/off-peak dynamics
+• Insider knowledge — you know the photo spots nobody talks about, the restaurants where locals eat, the shortcuts that save hours
+
+=== PLANNING RULES (NON-NEGOTIABLE) ===
+1. GEOGRAPHIC CLUSTERING: Group activities by neighborhood/zone. Morning in one area, afternoon in an adjacent one. Never zigzag across the city.
+2. REALISTIC PACING: Max 4-5 major activities per day. Include transit buffer time between activities. Meals are experiences, not interruptions — allocate 45-90 min.
+3. TIME-OF-DAY INTELLIGENCE: Temples/monuments → morning (cooler, fewer crowds). Markets/shopping → afternoon. Food tours/nightlife → evening. Sunrise/sunset spots at the right time.
+4. CHILDREN AWARENESS: If children are present, slow the pace by 30%. Add child-friendly activities. Include rest/nap breaks mid-afternoon. Avoid very long walks.
+5. FIRST & LAST DAY: Day 1 = arrival, check-in, light exploration nearby. Last day = checkout, last-minute shopping, airport transfer. Never overpack these days.
+6. COSTS IN INR: Every cost must be in Indian Rupees. Be precise — entry fees, meal costs, transport fares. Include tipping guidelines.
+7. VEGETARIAN INTELLIGENCE: Always mention vegetarian options. For each restaurant, note if veg-friendly. For countries with limited veg options, provide survival strategies.
+8. BOOKING INTELLIGENCE: Flag what MUST be pre-booked (skip-the-line tickets, popular restaurants, sunrise permits) vs what can be done on-the-spot.
+9. SAFETY-FIRST: Note areas to avoid at night, common tourist scams, emergency contacts, nearest Indian embassy.
+10. TRANSPORT LOGIC: Recommend the BEST transport mode for each leg (walk if <1km, metro/bus for 1-5km, taxi/cab for 5km+). Name specific metro lines, bus numbers, or ride-hailing apps.
+
+=== TRIP DETAILS ===
+Destination: ${request.destination}
+Flying from: ${request.flyingFrom || 'India (city not specified)'}
+Dates: ${request.departureDate} → ${request.returnDate} (${durationDays} days)
+Travelers: ${request.adults} adults${request.children > 0 ? `, ${request.children} children` : ''}
+Total budget: ₹${request.budgetInr.toLocaleString('en-IN')} (₹${budgetPerPersonPerDay.toLocaleString('en-IN')}/person/day)
+Travel style: ${request.travelStyle.join(', ')}
+${request.customPreferences ? `Special requests: ${request.customPreferences}` : ''}
+
+${destinationSummary}
+
+=== OUTPUT FORMAT ===
+Return ONLY valid JSON. Use snake_case keys. Follow this exact structure:
+
+${JSON.stringify({
+  destination: 'string',
+  country: 'string',
+  flag: 'emoji',
+  trip_summary: {
+    total_days: durationDays,
+    total_travelers: totalTravelers,
+    budget_tier: 'Budget | Mid-range | Luxury',
+    estimated_total_inr: 0,
+    estimated_per_person_inr: 0,
+    best_currency: 'string',
+    exchange_rate_note: '1 USD ≈ ₹83 (example)',
+    weather_during_trip: 'string',
+    language_tip: 'string',
+    emergency_number: 'string',
+    indian_embassy: 'string',
+  },
+  pre_trip_checklist: ['item1', 'item2'],
+  days: [{
+    day_number: 1,
+    date: request.departureDate,
+    day_label: 'Arrival & First Impressions',
+    theme: 'string',
+    neighborhood_focus: 'string',
+    weather_expected: 'string',
+    slots: [{
+      slot_id: 'd1_s1',
+      time_start: '14:00',
+      time_end: '15:30',
+      duration_min: 90,
+      type: 'travel | sightseeing | food | shopping | wellness | adventure | cultural | nightlife | rest | transport',
+      activity: 'string',
+      location: 'Specific place name, Area/District',
+      transport_mode: 'walk | metro | bus | taxi | auto | tuk-tuk | ferry | train | flight | cable-car | bicycle',
+      transport_detail: 'Take Metro Line X to Station Y (15 min)',
+      distance_km: 0,
+      cost_inr_per_person: 0,
+      cost_inr_total: 0,
+      notes: 'string',
+      tip: 'insider tip or pro-tip',
+      booking_required: false,
+      booking_tip: 'string',
+      map_query: 'Google Maps searchable name',
+      highlights: ['highlight1'],
+      photo_spot: 'string',
+      cuisine: 'string or null',
+      must_try: ['dish1'],
+      vegetarian_options: true,
+      why_now: 'why this time of day is perfect',
+    }],
+    day_budget_summary: { accommodation_inr: 0, food_inr: 0, transport_inr: 0, activities_inr: 0, misc_inr: 0, day_total_inr: 0, day_total_per_person_inr: 0 },
+    day_tips: ['tip1'],
+  }],
+  hotels: [{ name: 'string', area: 'string', tier: 'Budget | Mid | Luxury', why_here: 'string', price_inr_per_night: 0, booking_platform: 'string', check_in_day: 1, check_out_day: 2, nights: 1 }],
+  transport_summary: { airport_transfer_in: { mode: 'string', cost_inr: 0, duration_min: 0 }, airport_transfer_out: { mode: 'string', cost_inr: 0, duration_min: 0, depart_time: 'string' }, day_passes: ['string'], app_downloads: ['string'] },
+  budget_breakdown: { flights_inr: 0, accommodation_total_inr: 0, food_total_inr: 0, transport_local_inr: 0, activities_inr: 0, shopping_buffer_inr: 0, visa_fee_inr: 0, misc_contingency_inr: 0, grand_total_inr: 0, per_person_inr: 0, vs_budget: 'within', savings_tips: ['string'] },
+  experiences_by_category: { must_do: ['string'], food_trail: ['string'], off_beaten_path: ['string'], splurge_if_possible: ['string'], skip: ['string'] },
+  day_trips: [{ name: 'string', distance_km: 0, duration_hours: 0, transport: 'string', best_day: 'string', cost_inr_per_person: 0, highlights: ['string'] }],
+  cultural_guide: { dos: ['string'], donts: ['string'], scams_to_avoid: ['string'], indian_specific: ['string'] },
+  packing_list: { essentials: ['string'], clothing: ['string'], health: ['string'], tech: ['string'] },
+})}
+
+IMPORTANT: For each slot's "location" field, use a specific, Google-searchable place name (e.g., "Senso-ji Temple, Asakusa" not just "temple"). This is used to resolve real GPS data via Google Places API after your response.
+
+Now create the ultimate ${durationDays}-day itinerary for ${request.destination}. Make it extraordinary.`;
 }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   VALIDATE GEMINI RESPONSE
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 function validateGeminiResponse(payload: GeminiItineraryResponse) {
   if (!Array.isArray(payload.days) || payload.days.length === 0) {
     throw new Error('Itinerary must contain at least one day');
   }
-
   for (const day of payload.days) {
     if (!Array.isArray(day.slots) || day.slots.length === 0) {
       throw new Error(`Day ${day.day_number} has no slots`);
@@ -478,13 +493,16 @@ function validateGeminiResponse(payload: GeminiItineraryResponse) {
   }
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TRANSFORM GEMINI → ITINERARY
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
 async function transformGeminiResponse(
   payload: GeminiItineraryResponse,
   request: NormalizedGenerateRequest,
   destinationContext: Awaited<ReturnType<typeof getDestinationContext>>,
 ): Promise<Itinerary> {
   const heroImage = destinationContext?.heroImageUrl ?? null;
-  const totalTravelers = request.adults + request.children;
 
   const days: ItineraryDay[] = payload.days.map((day) => {
     const slots: ItinerarySlot[] = day.slots.map((slot) => ({
@@ -549,7 +567,7 @@ async function transformGeminiResponse(
   const itinerary: Itinerary = {
     id: crypto.randomUUID(),
     tripId: '',
-    title: `${payload.destination} Precision Itinerary`,
+    title: `${payload.destination} ${days.length}-Day Itinerary`,
     destination: payload.destination,
     country: payload.country,
     flag: payload.flag,
@@ -630,10 +648,153 @@ async function transformGeminiResponse(
     packingList: payload.packing_list,
   };
 
+  // Phase 2: Enrich with Google APIs (real distances, addresses, Maps URLs)
   await enrichItineraryWithGoogleSignals(itinerary, payload.destination, payload.country);
 
   return itinerary;
 }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GOOGLE API ENRICHMENT (Phase 2 — Factual Data)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+async function enrichItineraryWithGoogleSignals(itinerary: Itinerary, destination: string, country: string) {
+  if (env.GOOGLE_PLACES_API_KEY === 'placeholder' || env.GOOGLE_PLACES_API_KEY.trim().length === 0) {
+    logger.info('Google Places API key not set — skipping enrichment');
+    return;
+  }
+
+  // Step 1: Geocode destination city for location bias
+  const cityGeo = await geocodeDestination(destination, country);
+
+  for (const day of itinerary.days) {
+    if (day.slots == null || day.slots.length === 0) continue;
+
+    // Step 2: Resolve all slot locations via Google Places (parallel within day)
+    const resolvedPlaces = await Promise.all(
+      day.slots.map((slot: ItinerarySlot) =>
+        resolvePlaceEnhanced(`${slot.location}, ${destination}, ${country}`, cityGeo),
+      ),
+    );
+
+    // Step 3: Fill place data into slots + compute distance legs
+    for (let i = 0; i < day.slots.length; i++) {
+      const slot = day.slots[i];
+      const resolved = resolvedPlaces[i];
+      if (slot == null || resolved == null) continue;
+
+      // Fill Google data
+      slot.mapQuery = resolved.mapsUrl ?? slot.mapQuery;
+      if (slot.notes == null || slot.notes.length === 0) {
+        slot.notes = resolved.address;
+      }
+
+      // Step 4: Distance Matrix for consecutive slots
+      const nextResolved = resolvedPlaces[i + 1];
+      const nextSlot = day.slots[i + 1];
+      if (nextResolved == null || nextSlot == null) continue;
+
+      const transportMode = mapTransportMode(nextSlot.transportMode);
+      const leg = await getDistanceMatrixWithMode(resolved.placeId, nextResolved.placeId, transportMode);
+      if (leg == null) continue;
+
+      nextSlot.distanceKm = leg.distanceKm;
+      nextSlot.transportDetail = `${leg.durationMin} min by ${transportMode} (${leg.distanceKm} km)`;
+    }
+
+    // Small delay between days to respect rate limits
+    await new Promise((r) => setTimeout(r, 200));
+  }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GOOGLE API HELPERS
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+async function geocodeDestination(destination: string, country: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const res = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+      params: { address: `${destination}, ${country}`, key: env.GOOGLE_PLACES_API_KEY },
+      timeout: 10000,
+    });
+    const loc = res.data?.results?.[0]?.geometry?.location;
+    if (loc == null) return null;
+    return { lat: loc.lat, lng: loc.lng };
+  } catch {
+    return null;
+  }
+}
+
+async function resolvePlaceEnhanced(query: string, locationBias?: { lat: number; lng: number } | null) {
+  try {
+    const params: Record<string, string> = {
+      input: query,
+      inputtype: 'textquery',
+      fields: 'place_id,name,formatted_address,geometry',
+      key: env.GOOGLE_PLACES_API_KEY,
+    };
+    if (locationBias != null) {
+      params.locationbias = `point:${locationBias.lat},${locationBias.lng}`;
+    }
+
+    const res = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
+      params,
+      timeout: 10000,
+    });
+
+    const candidate = res.data?.candidates?.[0];
+    if (candidate == null) return null;
+
+    return {
+      placeId: candidate.place_id as string,
+      address: candidate.formatted_address as string,
+      lat: candidate.geometry?.location?.lat as number | undefined,
+      lng: candidate.geometry?.location?.lng as number | undefined,
+      mapsUrl: `https://www.google.com/maps/search/?api=1&query_place_id=${candidate.place_id}`,
+    };
+  } catch (err) {
+    logger.warn({ err, query }, 'Google place resolution failed');
+    return null;
+  }
+}
+
+function mapTransportMode(mode?: string): string {
+  if (mode == null) return 'driving';
+  const m = mode.toLowerCase();
+  if (m === 'walk' || m === 'walking') return 'walking';
+  if (m === 'metro' || m === 'bus' || m === 'train' || m === 'transit' || m === 'ferry') return 'transit';
+  if (m === 'bicycle' || m === 'cycling') return 'bicycling';
+  return 'driving';
+}
+
+async function getDistanceMatrixWithMode(originPlaceId: string, destPlaceId: string, mode: string) {
+  try {
+    const res = await axios.get('https://maps.googleapis.com/maps/api/distancematrix/json', {
+      params: {
+        origins: `place_id:${originPlaceId}`,
+        destinations: `place_id:${destPlaceId}`,
+        mode,
+        key: env.GOOGLE_PLACES_API_KEY,
+      },
+      timeout: 10000,
+    });
+
+    const element = res.data?.rows?.[0]?.elements?.[0];
+    if (element?.status !== 'OK') return null;
+
+    return {
+      distanceKm: Math.round((element.distance.value as number) / 100) / 10,
+      durationMin: Math.max(1, Math.round((element.duration.value as number) / 60)),
+    };
+  } catch (err) {
+    logger.warn({ err, originPlaceId, destPlaceId }, 'Google distance lookup failed');
+    return null;
+  }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   UTILITIES
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 function getDurationDays(startDate: string, endDate: string) {
   const diff = new Date(endDate).getTime() - new Date(startDate).getTime();
@@ -646,95 +807,4 @@ function money(amount: number) {
     currency: 'INR' as const,
     formatted: `₹${amount.toLocaleString('en-IN')}`,
   };
-}
-
-async function enrichItineraryWithGoogleSignals(itinerary: Itinerary, destination: string, country: string) {
-  if (
-    env.GOOGLE_PLACES_API_KEY === 'placeholder' ||
-    env.GOOGLE_PLACES_API_KEY.trim().length === 0
-  ) {
-    return;
-  }
-
-  for (const day of itinerary.days) {
-    if (day.slots == null || day.slots.length === 0) continue;
-
-    const resolvedPlaces = await Promise.all(
-      day.slots.map((slot) => resolvePlace(`${slot.location}, ${destination}, ${country}`)),
-    );
-
-    for (let index = 0; index < day.slots.length; index += 1) {
-      const slot = day.slots[index];
-      const resolved = resolvedPlaces[index];
-      if (slot == null || resolved == null) continue;
-
-      slot.mapQuery = resolved.mapsUrl ?? slot.mapQuery;
-      if (slot.notes == null || slot.notes.length === 0) {
-        slot.notes = resolved.address;
-      }
-
-      const nextResolved = resolvedPlaces[index + 1];
-      const nextSlot = day.slots[index + 1];
-      if (nextResolved == null || nextSlot == null) continue;
-
-      const leg = await getDistanceMatrixLeg(resolved.placeId, nextResolved.placeId);
-      if (leg == null) continue;
-
-      nextSlot.distanceKm = nextSlot.distanceKm ?? leg.distanceKm;
-      if (nextSlot.transportDetail == null || nextSlot.transportDetail.length === 0) {
-        nextSlot.transportDetail = `${leg.durationMinutes} min by road based on Google distance data`;
-      }
-    }
-  }
-}
-
-async function resolvePlace(query: string) {
-  try {
-    const response = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
-      params: {
-        input: query,
-        inputtype: 'textquery',
-        fields: 'place_id,name,formatted_address',
-        key: env.GOOGLE_PLACES_API_KEY,
-      },
-      timeout: 15000,
-    });
-
-    const candidate = response.data?.candidates?.[0];
-    if (candidate == null) return null;
-
-    return {
-      placeId: candidate.place_id as string,
-      address: candidate.formatted_address as string,
-      mapsUrl: `https://www.google.com/maps/search/?api=1&query_place_id=${candidate.place_id}`,
-    };
-  } catch (error) {
-    logger.warn({ error, query }, 'Google place resolution failed');
-    return null;
-  }
-}
-
-async function getDistanceMatrixLeg(originPlaceId: string, destinationPlaceId: string) {
-  try {
-    const response = await axios.get('https://maps.googleapis.com/maps/api/distancematrix/json', {
-      params: {
-        origins: `place_id:${originPlaceId}`,
-        destinations: `place_id:${destinationPlaceId}`,
-        mode: 'driving',
-        key: env.GOOGLE_PLACES_API_KEY,
-      },
-      timeout: 15000,
-    });
-
-    const element = response.data?.rows?.[0]?.elements?.[0];
-    if (element?.status !== 'OK') return null;
-
-    return {
-      distanceKm: Math.round((element.distance.value as number) / 100) / 10,
-      durationMinutes: Math.max(1, Math.round((element.duration.value as number) / 60)),
-    };
-  } catch (error) {
-    logger.warn({ error, originPlaceId, destinationPlaceId }, 'Google distance lookup failed');
-    return null;
-  }
 }

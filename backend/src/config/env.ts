@@ -55,6 +55,9 @@ const envSchema = z.object({
   // Google Places
   GOOGLE_PLACES_API_KEY: z.string().default('placeholder'),
 
+  // Groq (Llama)
+  GROQ_API_KEY: z.string().default('placeholder'),
+
   // Foursquare
   FOURSQUARE_API_KEY: z.string().default('placeholder'),
 
