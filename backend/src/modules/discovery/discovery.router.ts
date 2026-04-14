@@ -95,14 +95,26 @@ router.get('/destinations', optionalAuth, validateQuery(discoverQuerySchema), as
   try {
     const query = req.query as DiscoverQuery;
     const result = await searchDestinations(query);
+
+    // Fetch trending/featured/hiddenGems from ALL destinations (not just current page)
+    // to ensure diversity across continents
+    const [trendingRows, featuredRows, gemRows] = await Promise.all([
+      db.select().from(destinations).where(eq(destinations.isTrending, 1)).orderBy(desc(destinations.trendingScore)).limit(12),
+      db.select().from(destinations).where(eq(destinations.isPopular, 1)).orderBy(asc(destinations.rank)).limit(8),
+      db.select().from(destinations).where(eq(destinations.isHiddenGem, 1)).orderBy(desc(destinations.valueScore)).limit(8),
+    ]);
+
+    const imageAssetIds = [...trendingRows, ...featuredRows, ...gemRows].map((r) => r.id);
+    const assetMap = imageAssetIds.length > 0 ? await loadImageAssetMap(imageAssetIds) : new Map();
+
     sendSuccess(
       res,
       {
         destinations: result.destinations,
         totalResults: result.total,
-        featured: result.destinations.filter((item) => item.isPopular).slice(0, 4),
-        trending: result.destinations.filter((item) => item.isTrending).slice(0, 6),
-        hiddenGems: result.destinations.filter((item) => item.isHiddenGem).slice(0, 4),
+        featured: featuredRows.slice(0, 4).map((r) => formatDestination(r, assetMap.get(r.id) ?? [])),
+        trending: trendingRows.slice(0, 6).map((r) => formatDestination(r, assetMap.get(r.id) ?? [])),
+        hiddenGems: gemRows.slice(0, 4).map((r) => formatDestination(r, assetMap.get(r.id) ?? [])),
       },
       200,
       buildPaginationMeta(result.total, query.page, query.limit),
@@ -372,13 +384,44 @@ async function extractDiscoveryFilters(query: string): Promise<Partial<DiscoverQ
       {
         contents: [{
           parts: [{
-            text: [
-              'Extract destination discovery filters for Indian travelers.',
-              'Return only JSON with keys: continent, tags, visaStatus, budgetMax, budgetMin, safetyMin, month, hiddenGem, trending, search.',
-              'Use lowercase continents from: asia, europe, north_america, south_america, africa, oceania, middle_east, india.',
-              'Use visaStatus values from: visa_free, visa_on_arrival, e_visa, visa_required.',
-              `Query: ${query}`,
-            ].join('\n'),
+            text: `You are the world's most intelligent travel search engine for Indian travelers. Your job is to interpret natural language travel queries and extract precise, structured filter parameters.
+
+=== YOUR INTELLIGENCE ===
+• You understand context: "cheap" means budget ≤ ₹3000/day, "luxury" means ≥ ₹15000/day, "mid-range" is ₹3000-8000/day
+• You understand geography: "Southeast Asia" → asia, "Americas" → north_america + south_america, "Europe" → europe
+• You understand seasons: "winter trip" → months 11,12,1,2; "summer" → 5,6,7; "monsoon" → 7,8,9
+• You understand travel intent: "honeymoon" → tags Romance; "family trip" → tags Family; "trekking" → tags Mountain,Adventure
+• You understand visa context for Indian passport: Thailand=visa_free, Japan=visa_required, UAE=visa_on_arrival, UK=visa_required
+• You handle compound queries: "beach in December visa-free under 3k/day" → tags Beach, month 12, visaStatus visa_free, budgetMax 3000
+• You handle vague queries intelligently: "somewhere peaceful" → tags Wellness, hiddenGem true; "party destination" → tags Nightlife
+
+=== FILTER PARAMETERS ===
+Extract ONLY relevant filters. Leave unmentioned filters out (do NOT set them to null).
+
+{
+  "continent": "asia | europe | north_america | south_america | africa | oceania | middle_east | india | americas",
+  "tags": ["Beach","Mountain","Heritage","Romance","Adventure","Family","Wellness","Foodie","Luxury","Nightlife"],
+  "visaStatus": "visa_free | visa_on_arrival | e_visa | visa_required",
+  "budgetMax": number (INR per person per day),
+  "budgetMin": number (INR per person per day),
+  "safetyMin": number (0-100, set 80+ for "safe" queries, 90+ for "very safe"),
+  "month": number (1-12),
+  "hiddenGem": boolean (true for "offbeat", "unexplored", "hidden", "underrated"),
+  "trending": boolean (true for "trending", "popular now", "hot"),
+  "search": "text search term for destination name/country if specific place mentioned"
+}
+
+=== RULES ===
+1. Budget values are ALWAYS in INR per person per day. Convert if user says total budget (divide by days and people).
+2. If user mentions a specific destination by name, put it in "search" field, not tags.
+3. "Americas" encompasses both north_america and south_america — use "americas" for the continent value.
+4. For Indian domestic destinations, use continent "india".
+5. Only set filters that are clearly implied. When in doubt, leave it out — returning fewer filters is better than wrong ones.
+6. Tags must EXACTLY match: Beach, Mountain, Heritage, Romance, Adventure, Family, Wellness, Foodie, Luxury, Nightlife (title case).
+
+Return ONLY valid JSON. No explanations.
+
+User query: "${query}"`,
           }],
         }],
         generationConfig: {
