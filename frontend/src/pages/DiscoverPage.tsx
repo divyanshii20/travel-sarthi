@@ -174,8 +174,9 @@ export function DiscoverPage() {
               alt=""
               className="w-full h-full object-cover"
               style={{
-                transform: i === heroImageIdx ? 'scale(1.08)' : 'scale(1)',
+                transform: i === heroImageIdx ? 'scale(1.12)' : 'scale(1)',
                 transition: 'transform 8s ease-out',
+                filter: 'blur(2px) brightness(0.85)',
               }}
               onError={() => {}}
             />

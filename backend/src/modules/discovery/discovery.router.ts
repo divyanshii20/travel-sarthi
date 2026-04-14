@@ -277,6 +277,7 @@ async function searchDestinations(query: DiscoverQuery) {
     tags: [...parsedTags].sort(),
     trending: query.trending ?? null,
     visaStatus: query.visaStatus ?? null,
+    flightDuration: query.flightDuration ?? null,
   };
 
   const cacheKey = `dest:${JSON.stringify(cachePayload)}`;
