@@ -167,7 +167,7 @@ async function callGroq(systemPrompt: string, userPrompt: string, maxTokens = 20
     const res = await axios.post(
       'https://api.groq.com/openai/v1/chat/completions',
       {
-        model: 'llama-3.1-70b-versatile',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -185,6 +185,35 @@ async function callGroq(systemPrompt: string, userPrompt: string, maxTokens = 20
     logger.warn({ err }, 'Groq call failed');
     return '';
   }
+}
+
+async function callGroqForItinerary(prompt: string): Promise<GeminiItineraryResponse> {
+  if (env.GROQ_API_KEY === 'placeholder' || env.GROQ_API_KEY.trim().length === 0) {
+    throw new Error('Groq API key not configured');
+  }
+  const res = await axios.post(
+    'https://api.groq.com/openai/v1/chat/completions',
+    {
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an elite travel architect. You MUST respond with ONLY valid JSON — no markdown, no explanation, no code blocks. Output the raw JSON object directly.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 8192,
+      response_format: { type: 'json_object' },
+    },
+    {
+      headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+      timeout: 120000,
+    },
+  );
+  const text = (res.data?.choices?.[0]?.message?.content ?? '').trim();
+  if (text.length === 0) throw new Error('Groq returned empty itinerary');
+  return JSON.parse(text) as GeminiItineraryResponse;
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -216,23 +245,44 @@ export async function generateItinerary(
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 8000,
+            maxOutputTokens: 16000,
             responseMimeType: 'application/json',
           },
         },
         { timeout: 60000 },
       );
 
-      const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const candidate = response.data?.candidates?.[0];
+      const finishReason = candidate?.finishReason;
+      const text = candidate?.content?.parts?.[0]?.text;
+
+      logger.info({ finishReason, textLength: typeof text === 'string' ? text.length : 0 }, 'Gemini raw response received');
+
       if (typeof text !== 'string' || text.trim().length === 0) {
-        throw new Error('Gemini returned an empty itinerary payload');
+        throw new Error(`Gemini returned an empty payload (finishReason: ${finishReason})`);
+      }
+      if (finishReason === 'MAX_TOKENS') {
+        logger.warn({ textLength: text.length }, 'Gemini hit token limit — JSON may be truncated');
       }
 
       parsed = JSON.parse(text) as GeminiItineraryResponse;
       validateGeminiResponse(parsed);
     } catch (error) {
-      logger.error({ error, normalized }, 'Elite itinerary generation failed');
-      throw new ExternalServiceError('Gemini', 'Failed to generate a valid itinerary');
+      const geminiStatus = axios.isAxiosError(error) ? error.response?.status : null;
+      const geminiData = axios.isAxiosError(error) ? error.response?.data : null;
+      logger.warn({ geminiStatus, geminiData }, 'Gemini failed — attempting Groq fallback');
+
+      // Fallback to Groq (Llama 3.3 70B) when Gemini is rate-limited or unavailable
+      try {
+        logger.info('Generating itinerary via Groq fallback');
+        const groqPrompt = buildGroqCompactPrompt(normalized, destinationContext);
+        parsed = await callGroqForItinerary(groqPrompt);
+        validateGeminiResponse(parsed);
+        logger.info('Groq fallback succeeded');
+      } catch (groqError) {
+        logger.error({ geminiStatus, geminiData, groqError }, 'Both Gemini and Groq failed for itinerary generation');
+        throw new ExternalServiceError('AI', 'Unable to generate itinerary — AI services unavailable. Please try again in a moment.');
+      }
     }
 
     const itinerary = await transformGeminiResponse(parsed, normalized, destinationContext);
@@ -351,6 +401,49 @@ async function getDestinationContext(destinationName: string) {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    WORLD-CLASS SYSTEM PROMPT (Gemini)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+function buildGroqCompactPrompt(request: NormalizedGenerateRequest, destinationContext: Awaited<ReturnType<typeof getDestinationContext>>): string {
+  const durationDays = getDurationDays(request.departureDate, request.returnDate);
+  const totalTravelers = request.adults + request.children;
+
+  return `Create a ${durationDays}-day travel itinerary for ${request.destination} for ${totalTravelers} travelers (${request.adults} adults${request.children > 0 ? `, ${request.children} children` : ''}).
+Budget: INR ${request.budgetInr}. Style: ${request.travelStyle.join(', ')}. Dates: ${request.departureDate} to ${request.returnDate}.
+${request.customPreferences ? `Special requests: ${request.customPreferences}` : ''}
+${destinationContext ? `Currency: ${destinationContext.currency}. Timezone: ${destinationContext.timezoneName}.` : ''}
+
+Return ONLY a JSON object with this structure:
+{
+  "destination": "city name",
+  "country": "country name",
+  "flag": "🏳",
+  "trip_summary": { "total_days": ${durationDays}, "total_travelers": ${totalTravelers}, "budget_tier": "Budget|Mid-range|Luxury", "estimated_total_inr": 0, "estimated_per_person_inr": 0, "best_currency": "USD", "exchange_rate_note": "1 USD ≈ ₹83", "weather_during_trip": "hot", "language_tip": "tip", "emergency_number": "911", "indian_embassy": "address" },
+  "pre_trip_checklist": ["passport", "visa"],
+  "days": [
+    {
+      "day_number": 1,
+      "date": "${request.departureDate}",
+      "day_label": "Arrival Day",
+      "theme": "theme",
+      "neighborhood_focus": "area",
+      "weather_expected": "sunny",
+      "slots": [
+        { "slot_id": "d1_s1", "time_start": "14:00", "time_end": "16:00", "duration_min": 120, "type": "sightseeing", "activity": "activity name", "location": "Specific Place Name, District", "transport_mode": "taxi", "transport_detail": "Taxi from airport", "distance_km": 5, "cost_inr_per_person": 500, "cost_inr_total": 1000, "notes": "note", "tip": "pro tip", "booking_required": false, "booking_tip": "", "map_query": "Place Name City", "highlights": ["highlight"], "photo_spot": "spot", "cuisine": null, "must_try": [], "vegetarian_options": true, "why_now": "reason" }
+      ],
+      "day_budget_summary": { "accommodation_inr": 0, "food_inr": 0, "transport_inr": 0, "activities_inr": 0, "misc_inr": 0, "day_total_inr": 0, "day_total_per_person_inr": 0 },
+      "day_tips": ["tip"]
+    }
+  ],
+  "hotels": [{ "name": "Hotel Name", "area": "area", "tier": "Mid", "why_here": "reason", "price_inr_per_night": 3000, "booking_platform": "Booking.com", "check_in_day": 1, "check_out_day": ${durationDays}, "nights": ${durationDays - 1} }],
+  "transport_summary": { "airport_transfer_in": { "mode": "taxi", "cost_inr": 800, "duration_min": 30 }, "airport_transfer_out": { "mode": "taxi", "cost_inr": 800, "duration_min": 30, "depart_time": "10:00" }, "day_passes": [], "app_downloads": ["Uber"] },
+  "budget_breakdown": { "flights_inr": 0, "accommodation_total_inr": 0, "food_total_inr": 0, "transport_local_inr": 0, "activities_inr": 0, "shopping_buffer_inr": 0, "visa_fee_inr": 0, "misc_contingency_inr": 0, "grand_total_inr": 0, "per_person_inr": 0, "vs_budget": "within", "savings_tips": ["tip"] },
+  "experiences_by_category": { "must_do": [], "food_trail": [], "off_beaten_path": [], "splurge_if_possible": [], "skip": [] },
+  "day_trips": [],
+  "cultural_guide": { "dos": [], "donts": [], "scams_to_avoid": [], "indian_specific": [] },
+  "packing_list": { "essentials": [], "clothing": [], "health": [], "tech": [] }
+}
+
+Fill all ${durationDays} days with 4-5 real slots each. Use real place names. Keep costs in INR. Be concise but accurate.`;
+}
 
 function buildElitePrompt(request: NormalizedGenerateRequest, destinationContext: Awaited<ReturnType<typeof getDestinationContext>>) {
   const durationDays = getDurationDays(request.departureDate, request.returnDate);
