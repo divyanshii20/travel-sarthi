@@ -15,10 +15,10 @@ import { containerVariants, itemVariants } from '@/lib/animations';
 import type { Destination } from 'travel-sarthi-shared-types';
 
 const FALLBACK_HERO_IMAGES = [
-  'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=1400&q=80',
-  'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=80',
-  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1400&q=80',
-  'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=1400&q=80',
+  'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1600&q=85', // stunning mountain sunrise
+  'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1600&q=85', // turquoise lake aerial
+  'https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=1600&q=85', // tropical beach paradise
+  'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1600&q=85', // golden hour landscape
 ];
 
 const INITIAL_FILTERS: FilterState = {
@@ -181,8 +181,8 @@ export function DiscoverPage() {
             />
           </div>
         ))}
-        {/* Cinematic multi-layer overlay */}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.75) 100%)' }} />
+        {/* Cinematic multi-layer overlay — stronger for text readability */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.45) 35%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.8) 100%)' }} />
         {/* Subtle warm tint overlay */}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(232,98,42,0.08) 0%, transparent 50%, rgba(244,162,97,0.06) 100%)' }} />
 
@@ -200,17 +200,17 @@ export function DiscoverPage() {
             <p className="text-xs font-semibold mb-3 tracking-[0.25em] uppercase" style={{ color: 'var(--color-gold-light, #F4A261)' }}>
               Travel Sarthi · AI-Powered Discovery
             </p>
-            <h1 className="font-display font-bold text-white mb-3" style={{ fontSize: 'clamp(2rem, 5vw, 3.25rem)', lineHeight: 1.08, letterSpacing: '-0.02em' }}>
+            <h1 className="font-display text-white mb-3" style={{ fontSize: 'clamp(2.25rem, 5.5vw, 3.5rem)', lineHeight: 1.1, letterSpacing: '-0.01em', fontWeight: 800, textShadow: '0 2px 20px rgba(0,0,0,0.5), 0 4px 40px rgba(0,0,0,0.3)' }}>
               Discover Your Next
-              <span className="block" style={{ background: 'linear-gradient(to right, #F4A261, #FF6B35)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <span className="block" style={{ background: 'linear-gradient(135deg, #FFD700, #F4A261, #FF6B35)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', filter: 'drop-shadow(0 2px 8px rgba(244,162,97,0.4))' }}>
                 Extraordinary Journey
               </span>
             </h1>
-            <p className="text-white/60 text-sm mb-2 font-light tracking-wide">
+            <p className="text-white/80 text-sm mb-2 font-medium tracking-wide" style={{ textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}>
               350+ handpicked destinations across 7 continents
             </p>
-            <p className="text-white/40 text-xs mb-7 flex items-center justify-center gap-3">
-              <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-green-400/80" /> AI-Ranked</span>
+            <p className="text-white/60 text-xs mb-7 flex items-center justify-center gap-3 font-medium" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> AI-Ranked</span>
               <span>·</span>
               <span>Real Prices in INR</span>
               <span>·</span>
