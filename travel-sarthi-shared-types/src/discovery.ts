@@ -171,6 +171,7 @@ export interface DiscoverRequestDTO {
   search?: string; // full-text search on name/country/tagline
   hiddenGem?: boolean;
   trending?: boolean;
+  flightDuration?: string; // '<4', '4-8', '8+'
 }
 
 export interface DiscoverResponseDTO {

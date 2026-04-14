@@ -74,6 +74,7 @@ export function DiscoverPage() {
         trending: filters.trending ?? undefined,
         sortBy: (filters.sort || 'score') as 'score' | 'price' | 'safety' | 'trending' | 'hidden_gem' | 'popularity',
         search: filters.search || undefined,
+        flightDuration: filters.flightDuration || undefined,
         page,
         limit: 24,
       }),

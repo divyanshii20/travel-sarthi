@@ -30,7 +30,7 @@ const CONTINENTS = [
   { label: 'Europe', value: 'europe' },
   { label: 'Middle East', value: 'middle_east' },
   { label: 'Africa', value: 'africa' },
-  { label: 'Americas', value: 'north_america' },
+  { label: 'Americas', value: 'americas' },
   { label: 'Oceania', value: 'oceania' },
 ];
 
@@ -58,7 +58,8 @@ const SORT_OPTIONS = [
   { label: 'Trending', value: 'trending' },
   { label: 'Budget ↑', value: 'price' },
   { label: 'Safety', value: 'safety' },
-  { label: 'A-Z', value: 'popularity' },
+  { label: 'Popular', value: 'popularity' },
+  { label: 'A-Z', value: 'az' },
 ];
 
 function isQuickFilterActive(filters: FilterState, qf: typeof QUICK_FILTERS[number]): boolean {

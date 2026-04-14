@@ -79,6 +79,7 @@ const discoverQuerySchema = z.object({
     if (value === 'false') return false;
     return value;
   }, z.boolean().optional()),
+  flightDuration: z.string().max(10).optional(),
   sortBy: z.enum(['score', 'price', 'safety', 'trending', 'hidden_gem', 'popularity', 'az']).default('score'),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(60).default(24),
@@ -283,10 +284,15 @@ async function searchDestinations(query: DiscoverQuery) {
     const conditions = [];
 
     if (query.continent != null && query.continent.length > 0) {
-      if (query.continent.toLowerCase() === 'india') {
+      const c = query.continent.toLowerCase();
+      if (c === 'india') {
         conditions.push(eq(destinations.isDomestic, true));
+      } else if (c === 'americas' || c === 'north_america') {
+        conditions.push(or(eq(destinations.continent, 'north_america'), eq(destinations.continent, 'south_america'))!);
+      } else if (c === 'asia') {
+        conditions.push(and(eq(destinations.continent, 'asia'), eq(destinations.isDomestic, false))!);
       } else {
-        conditions.push(eq(destinations.continent, query.continent.toLowerCase()));
+        conditions.push(eq(destinations.continent, c));
       }
     }
 
@@ -309,6 +315,16 @@ async function searchDestinations(query: DiscoverQuery) {
           ilike(destinations.tagline, `%${searchTerm}%`),
         )!,
       );
+    }
+
+    if (query.flightDuration != null && query.flightDuration.length > 0) {
+      if (query.flightDuration === '<4') {
+        conditions.push(lte(destinations.flightHoursMax, 4));
+      } else if (query.flightDuration === '4-8') {
+        conditions.push(and(gte(destinations.flightHoursMin, 4), lte(destinations.flightHoursMax, 8))!);
+      } else if (query.flightDuration === '8+') {
+        conditions.push(gte(destinations.flightHoursMin, 8));
+      }
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
