@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../../middleware/auth';
-import { validateBody, validateParams } from '../../middleware/validate';
+import { validateBody } from '../../middleware/validate';
 import { aiRateLimiter } from '../../middleware/rateLimiter';
 import { sendSuccess } from '../../shared/response';
-import { generateItinerary } from './itinerary.service';
+import { AppError } from '../../shared/errors';
+import { generateItinerary, getSavedItinerary } from './itinerary.service';
 
 const router = Router();
 
-const generateSchema = z.object({
+const legacyGenerateSchema = z.object({
   destination: z.string().min(2).max(100),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -28,26 +29,39 @@ const generateSchema = z.object({
   existingTripId: z.string().uuid().optional(),
 });
 
-// POST /api/itinerary/generate
+const eliteGenerateSchema = z.object({
+  destination: z.string().min(2).max(120),
+  flying_from: z.string().max(120).optional(),
+  departure_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  return_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  adults: z.number().int().min(1),
+  children: z.number().int().min(0).default(0),
+  budget_inr: z.number().positive(),
+  travel_style: z.array(z.string().min(2)).min(1),
+  custom_preferences: z.string().max(1000).default(''),
+  mode: z.enum(['A', 'B']).default('A'),
+});
+
+const generateSchema = z.union([legacyGenerateSchema, eliteGenerateSchema]);
+
 router.post('/generate', requireAuth, aiRateLimiter, validateBody(generateSchema), async (req, res, next) => {
   try {
     const itinerary = await generateItinerary(req.body, req.userId);
     sendSuccess(res, { itinerary, generationTokensUsed: 0, cachedAt: null }, 201);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 });
 
-// GET /api/itinerary/:id
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
-    sendSuccess(res, { message: 'Itinerary retrieval — stored itineraries served from DB' });
-  } catch (err) {
-    next(err);
+    const itinerary = await getSavedItinerary(req.params.id, req.userId);
+    sendSuccess(res, itinerary);
+  } catch (error) {
+    next(error);
   }
 });
 
-// PATCH /api/itinerary/:id/activity/:activityId
 router.patch(
   '/:id/activity/:activityId',
   requireAuth,
@@ -56,16 +70,11 @@ router.patch(
     isSkipped: z.boolean().optional(),
     customNote: z.string().max(500).nullable().optional(),
   })),
-  async (req, res, next) => {
-    try {
-      sendSuccess(res, { message: 'Activity status updated' });
-    } catch (err) {
-      next(err);
-    }
+  (_req, _res, next) => {
+    next(new AppError('Not implemented', 501, 'NOT_IMPLEMENTED'));
   },
 );
 
-// POST /api/itinerary/:id/swap-activity
 router.post(
   '/:id/swap-activity',
   requireAuth,
@@ -75,16 +84,11 @@ router.post(
     activityId: z.string().min(1),
     reason: z.string().optional(),
   })),
-  async (req, res, next) => {
-    try {
-      sendSuccess(res, { message: 'Activity swap requested' });
-    } catch (err) {
-      next(err);
-    }
+  (_req, _res, next) => {
+    next(new AppError('Not implemented', 501, 'NOT_IMPLEMENTED'));
   },
 );
 
-// POST /api/itinerary/:id/export
 router.post(
   '/:id/export',
   requireAuth,
@@ -97,8 +101,8 @@ router.post(
   async (req, res, next) => {
     try {
       sendSuccess(res, { message: `Export to ${req.body.format} initiated`, exportId: `exp_${Date.now()}` });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   },
 );

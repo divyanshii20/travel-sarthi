@@ -7,6 +7,9 @@ import {
   timestamp,
   jsonb,
   index,
+  boolean,
+  text,
+  numeric,
 } from 'drizzle-orm/pg-core';
 
 export const hotelSearchCache = pgTable(
@@ -65,6 +68,36 @@ export const destinations = pgTable(
     isTrending: integer('is_trending').notNull().default(0),
     isHiddenGem: integer('is_hidden_gem').notNull().default(0),
     rank: integer('rank').notNull().default(999),
+    // New columns
+    safetyScore: integer('safety_score').notNull().default(75),
+    weatherScore: integer('weather_score').notNull().default(70),
+    infrastructureScore: integer('infrastructure_score').notNull().default(70),
+    valueScore: integer('value_score').notNull().default(70),
+    budgetPerDay: integer('budget_per_day'),
+    budgetMidPerDay: integer('budget_mid_per_day'),
+    budgetLuxuryPerDay: integer('budget_luxury_per_day'),
+    visaStatus: varchar('visa_status', { length: 30 }),
+    visaFeeInr: integer('visa_fee_inr'),
+    visaProcessingDays: integer('visa_processing_days'),
+    tags: text('tags').array().notNull().default([]),
+    bestMonths: integer('best_months').array().notNull().default([]),
+    avoidMonths: integer('avoid_months').array().notNull().default([]),
+    peakMonths: integer('peak_months').array().notNull().default([]),
+    weatherSummary: varchar('weather_summary', { length: 500 }),
+    flightHoursMin: real('flight_hours_min'),
+    flightHoursMax: real('flight_hours_max'),
+    directFlightCities: text('direct_flight_cities').array().notNull().default([]),
+    nearestAirportCode: varchar('nearest_airport_code', { length: 5 }),
+    isDomestic: boolean('is_domestic').notNull().default(false),
+    stateProvince: varchar('state_province', { length: 100 }),
+    trendingScore: integer('trending_score').notNull().default(50),
+    trendingChangePct: integer('trending_change_pct').notNull().default(0),
+    flagEmoji: varchar('flag_emoji', { length: 10 }),
+    galleryImages: text('gallery_images').array().notNull().default([]),
+    nearbyDestinations: text('nearby_destinations').array().notNull().default([]),
+    crowdLevel: varchar('crowd_level', { length: 20 }).notNull().default('Medium'),
+    idealDurationMin: integer('ideal_duration_min').notNull().default(3),
+    idealDurationMax: integer('ideal_duration_max').notNull().default(7),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -73,5 +106,117 @@ export const destinations = pgTable(
     countryIdx: index('dest_country_idx').on(t.countryCode),
     continentIdx: index('dest_continent_idx').on(t.continent),
     rankIdx: index('dest_rank_idx').on(t.rank),
+    isDomesticIdx: index('dest_is_domestic_idx').on(t.isDomestic),
+    trendingScoreIdx: index('dest_trending_score_idx').on(t.trendingScore),
+  }),
+);
+
+export const destinationPois = pgTable(
+  'destination_pois',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    destinationId: uuid('destination_id').notNull().references(() => destinations.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    category: varchar('category', { length: 50 }),
+    description: text('description'),
+    address: text('address'),
+    latitude: numeric('latitude', { precision: 9, scale: 6 }),
+    longitude: numeric('longitude', { precision: 9, scale: 6 }),
+    openingHours: jsonb('opening_hours'),
+    avgVisitHours: numeric('avg_visit_hours', { precision: 3, scale: 1 }),
+    entryFeeInr: integer('entry_fee_inr'),
+    rating: numeric('rating', { precision: 3, scale: 1 }),
+    priority: integer('priority').notNull().default(5),
+    bestTimeOfDay: varchar('best_time_of_day', { length: 20 }),
+    imageUrl: text('image_url'),
+    tags: text('tags').array().notNull().default([]),
+    isActive: boolean('is_active').notNull().default(true),
+  },
+  (t) => ({
+    destinationIdx: index('destination_pois_destination_idx').on(t.destinationId),
+    categoryIdx: index('destination_pois_category_idx').on(t.category),
+    priorityIdx: index('destination_pois_priority_idx').on(t.priority),
+  }),
+);
+
+export const destinationCollections = pgTable(
+  'destination_collections',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    slug: varchar('slug', { length: 100 }).notNull().unique(),
+    title: text('title').notNull(),
+    subtitle: text('subtitle'),
+    description: text('description'),
+    icon: varchar('icon', { length: 10 }),
+    gradient: text('gradient'),
+    destinationSlugs: text('destination_slugs').array().notNull().default([]),
+    isActive: boolean('is_active').notNull().default(true),
+    sortOrder: integer('sort_order').notNull().default(0),
+  },
+  (t) => ({
+    slugIdx: index('destination_collections_slug_idx').on(t.slug),
+    sortOrderIdx: index('destination_collections_sort_order_idx').on(t.sortOrder),
+  }),
+);
+
+export const destinationImageAssets = pgTable(
+  'destination_image_assets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    destinationId: uuid('destination_id').notNull().references(() => destinations.id, { onDelete: 'cascade' }),
+    assetType: varchar('asset_type', { length: 20 }).notNull().default('hero'),
+    sourceProvider: varchar('source_provider', { length: 40 }).notNull().default('database_seed'),
+    sourceUrl: text('source_url'),
+    storagePath: text('storage_path'),
+    publicUrl: text('public_url').notNull(),
+    altText: text('alt_text').notNull(),
+    width: integer('width'),
+    height: integer('height'),
+    blurDataUrl: text('blur_data_url'),
+    creditName: varchar('credit_name', { length: 200 }),
+    creditUrl: text('credit_url'),
+    license: varchar('license', { length: 50 }),
+    sortOrder: integer('sort_order').notNull().default(0),
+    status: varchar('status', { length: 20 }).notNull().default('ready'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    destinationIdx: index('destination_image_assets_destination_idx').on(t.destinationId, t.assetType, t.sortOrder),
+    providerIdx: index('destination_image_assets_provider_idx').on(t.sourceProvider, t.status),
+  }),
+);
+
+export const userWishlists = pgTable(
+  'user_wishlists',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull(),
+    destinationId: uuid('destination_id').notNull().references(() => destinations.id, { onDelete: 'cascade' }),
+    addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userDestinationIdx: index('user_wishlists_user_destination_idx').on(t.userId, t.destinationId),
+    destinationIdx: index('user_wishlists_destination_idx').on(t.destinationId),
+  }),
+);
+
+export const savedItineraries = pgTable(
+  'saved_itineraries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull(),
+    destinationId: uuid('destination_id').references(() => destinations.id, { onDelete: 'set null' }),
+    title: text('title'),
+    durationDays: integer('duration_days'),
+    travelers: integer('travelers'),
+    budgetInr: integer('budget_inr'),
+    itineraryJson: jsonb('itinerary_json').notNull(),
+    mode: varchar('mode', { length: 5 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userIdx: index('saved_itineraries_user_idx').on(t.userId),
+    destinationIdx: index('saved_itineraries_destination_idx').on(t.destinationId),
   }),
 );

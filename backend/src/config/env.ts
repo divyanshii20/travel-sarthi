@@ -79,6 +79,12 @@ const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
   STORAGE_BUCKET_AVATARS: z.string().default('avatars'),
   STORAGE_BUCKET_RECEIPTS: z.string().default('receipts'),
+  STORAGE_BUCKET_DESTINATIONS: z.string().default('destinations'),
+
+  // Image providers
+  UNSPLASH_ACCESS_KEY: z.string().default(''),
+  PEXELS_API_KEY: z.string().default(''),
+  PIXABAY_API_KEY: z.string().default(''),
 
   // CORS
   CORS_ORIGIN: z.string().default('http://localhost:5173'),

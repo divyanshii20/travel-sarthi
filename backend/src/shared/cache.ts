@@ -2,6 +2,7 @@ import { redis } from '../config/redis';
 import { logger } from './logger';
 
 export type CacheTTL =
+  | 300         // 5 minutes
   | 60          // 1 minute
   | 900         // 15 minutes (flight search)
   | 1800        // 30 minutes (hotel search)

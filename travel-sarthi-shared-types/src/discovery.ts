@@ -2,7 +2,6 @@
 
 import type {
   UUID,
-  ISODateString,
   ISODateTimeString,
   MoneyAmount,
   GeoCoordinates,
@@ -33,7 +32,13 @@ export type TravelMood =
   | 'spiritual'
   | 'romance'
   | 'family'
-  | 'budget';
+  | 'budget'
+  | 'luxury'
+  | 'wellness'
+  | 'nature'
+  | 'history'
+  | 'art'
+  | 'architecture';
 
 // ─── 8-Dimension Destination Score ───────────────────────────────────────────
 
@@ -47,7 +52,7 @@ export interface DestinationScore {
   visaEase: number;
   travelTime: number; // from India
   communityRating: number;
-  badge: 'trending' | 'hidden_gem' | 'budget_pick' | 'luxury' | 'family_friendly' | 'adventure' | null;
+  badge: 'trending' | 'hidden_gem' | 'budget_pick' | 'luxury' | 'family_friendly' | 'adventure' | 'best_value' | null;
 }
 
 export interface BudgetEstimate {
@@ -106,6 +111,34 @@ export interface Destination {
   isTrending: boolean;
   isHiddenGem: boolean;
   rank: number; // overall rank
+  // ─── New flat fields for efficient filtering ──────────────────────────────
+  tags: string[];
+  visaStatus: string | null; // 'visa_free' | 'e_visa' | 'visa_on_arrival' | 'visa_required'
+  budgetPerDay: number | null; // INR per day (budget tier)
+  budgetMidPerDay: number | null;
+  budgetLuxuryPerDay: number | null;
+  flightHoursMin: number | null;
+  flightHoursMax: number | null;
+  directFlightCities: string[];
+  nearestAirportCode: string | null;
+  isDomestic: boolean;
+  stateProvince: string | null;
+  trendingScore: number;
+  trendingChangePct: number;
+  flagEmoji: string | null;
+  galleryImages: string[];
+  nearbyDestinations: string[];
+  crowdLevel: string;
+  idealDurationMin: number;
+  idealDurationMax: number;
+  safetyScore: number; // 0-100
+  weatherScore: number; // 0-100 (flat, duplicate of score.weatherScore for easy filtering)
+  infrastructureScore: number;
+  valueScore: number;
+  bestMonths: number[];
+  avoidMonths: number[];
+  peakMonths: number[];
+  weatherSummary: string | null;
   createdAt: ISODateTimeString;
   updatedAt: ISODateTimeString;
 }
@@ -113,19 +146,31 @@ export interface Destination {
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
 
 export interface DiscoverRequestDTO {
+  // Legacy filters
   budget?: number;
   currency?: CurrencyCode;
   budgetDays?: number;
-  moods?: TravelMood[];
+  moods?: string; // comma-separated TravelMood values
   continent?: DestinationContinent;
   departMonth?: number; // 1-12
   durationDays?: number;
   fromAirport?: string;
   visaTypes?: string[];
   minSafetyRating?: number;
-  sortBy?: 'score' | 'price' | 'safety' | 'trending' | 'hidden_gem';
+  sortBy?: 'score' | 'price' | 'safety' | 'trending' | 'hidden_gem' | 'popularity' | 'az';
   page?: number;
   limit?: number;
+  // New filter params
+  tags?: string; // comma-separated
+  budgetMin?: number; // INR per day
+  budgetMax?: number; // INR per day
+  safetyMin?: number; // 0-100
+  month?: number; // 1-12, filter by best month
+  visaStatus?: 'visa_free' | 'e_visa' | 'visa_on_arrival' | 'visa_required';
+  isDomestic?: boolean;
+  search?: string; // full-text search on name/country/tagline
+  hiddenGem?: boolean;
+  trending?: boolean;
 }
 
 export interface DiscoverResponseDTO {
@@ -137,7 +182,8 @@ export interface DiscoverResponseDTO {
 }
 
 export interface CompareDestinationsRequestDTO {
-  destinationIds: UUID[];
+  destinationIds?: UUID[];
+  slugs?: string[];
 }
 
 export interface CompareDestinationsResponseDTO {

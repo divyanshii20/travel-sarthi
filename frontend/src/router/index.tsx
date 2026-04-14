@@ -11,6 +11,7 @@ import { RegisterPage } from '@/pages/RegisterPage';
 // Lazy loaded
 const PlanPage = lazy(() => import('@/pages/PlanPage').then((m) => ({ default: m.PlanPage })));
 const DiscoverPage = lazy(() => import('@/pages/DiscoverPage').then((m) => ({ default: m.DiscoverPage })));
+const ItineraryPage = lazy(() => import('@/pages/ItineraryPage').then((m) => ({ default: m.ItineraryPage })));
 const DealsPage = lazy(() => import('@/pages/DealsPage').then((m) => ({ default: m.DealsPage })));
 const MyTripsPage = lazy(() => import('@/pages/MyTripsPage').then((m) => ({ default: m.MyTripsPage })));
 const TripDetailPage = lazy(() => import('@/pages/TripDetailPage').then((m) => ({ default: m.TripDetailPage })));
@@ -45,8 +46,20 @@ export const router = createBrowserRouter([
     element: <LazyWrapper><PlanPage /></LazyWrapper>,
   },
   {
+    path: '/plan-trip',
+    element: <LazyWrapper><PlanPage /></LazyWrapper>,
+  },
+  {
     path: '/plan/flights',
     element: <LazyWrapper><PlanPage /></LazyWrapper>,
+  },
+  {
+    path: '/itinerary/:id',
+    element: (
+      <ProtectedRoute>
+        <LazyWrapper><ItineraryPage /></LazyWrapper>
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/discover',

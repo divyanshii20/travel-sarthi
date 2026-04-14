@@ -1,11 +1,16 @@
 import { api } from './api';
-import type { Itinerary, GenerateItineraryRequestDTO, SwapActivityRequestDTO } from 'travel-sarthi-shared-types';
+import type {
+  GenerateItineraryRequestDTO,
+  GenerateItineraryResponseDTO,
+  Itinerary,
+  SwapActivityRequestDTO,
+} from 'travel-sarthi-shared-types';
 
 type ApiResponse<T> = { data: T; error: null } | { data: null; error: { code: string; message: string } };
 
 export const itineraryService = {
   async generate(body: GenerateItineraryRequestDTO) {
-    const res = await api.post<ApiResponse<Itinerary>>('/itinerary/generate', body);
+    const res = await api.post<ApiResponse<GenerateItineraryResponseDTO>>('/itinerary/generate', body);
     return res.data;
   },
 
@@ -16,7 +21,7 @@ export const itineraryService = {
 
   async updateActivityStatus(itineraryId: string, activityId: string, status: string) {
     const res = await api.patch<ApiResponse<Itinerary>>(
-      `/itinerary/${itineraryId}/activities/${activityId}`,
+      `/itinerary/${itineraryId}/activity/${activityId}`,
       { status }
     );
     return res.data;
@@ -27,7 +32,7 @@ export const itineraryService = {
     return res.data;
   },
 
-  async export(itineraryId: string, format: 'pdf' | 'ical') {
+  async export(itineraryId: string, format: 'pdf' | 'notion' | 'google_calendar' | 'email') {
     const res = await api.post<Blob>(`/itinerary/${itineraryId}/export`, { format }, { responseType: 'blob' });
     return res.data;
   },

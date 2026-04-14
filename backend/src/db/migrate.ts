@@ -27,6 +27,11 @@ async function migrate() {
     DROP TABLE IF EXISTS "itineraries" CASCADE;
     DROP TABLE IF EXISTS "trip_members" CASCADE;
     DROP TABLE IF EXISTS "trips" CASCADE;
+    DROP TABLE IF EXISTS "destination_image_assets" CASCADE;
+    DROP TABLE IF EXISTS "destination_pois" CASCADE;
+    DROP TABLE IF EXISTS "destination_collections" CASCADE;
+    DROP TABLE IF EXISTS "user_wishlists" CASCADE;
+    DROP TABLE IF EXISTS "saved_itineraries" CASCADE;
     DROP TABLE IF EXISTS "destinations" CASCADE;
     DROP TABLE IF EXISTS "hotel_search_cache" CASCADE;
     DROP TABLE IF EXISTS "fare_alerts" CASCADE;
@@ -207,8 +212,111 @@ async function migrate() {
       "is_trending" integer NOT NULL DEFAULT 0,
       "is_hidden_gem" integer NOT NULL DEFAULT 0,
       "rank" integer NOT NULL DEFAULT 999,
+      "safety_score" integer NOT NULL DEFAULT 75,
+      "weather_score" integer NOT NULL DEFAULT 70,
+      "infrastructure_score" integer NOT NULL DEFAULT 70,
+      "value_score" integer NOT NULL DEFAULT 70,
+      "budget_per_day" integer,
+      "budget_mid_per_day" integer,
+      "budget_luxury_per_day" integer,
+      "visa_status" varchar(30),
+      "visa_fee_inr" integer,
+      "visa_processing_days" integer,
+      "tags" text[] NOT NULL DEFAULT '{}',
+      "best_months" integer[] NOT NULL DEFAULT '{}',
+      "avoid_months" integer[] NOT NULL DEFAULT '{}',
+      "peak_months" integer[] NOT NULL DEFAULT '{}',
+      "weather_summary" varchar(500),
+      "flight_hours_min" real,
+      "flight_hours_max" real,
+      "direct_flight_cities" text[] NOT NULL DEFAULT '{}',
+      "nearest_airport_code" varchar(5),
+      "is_domestic" boolean NOT NULL DEFAULT false,
+      "state_province" varchar(100),
+      "trending_score" integer NOT NULL DEFAULT 50,
+      "trending_change_pct" integer NOT NULL DEFAULT 0,
+      "flag_emoji" varchar(10),
+      "gallery_images" text[] NOT NULL DEFAULT '{}',
+      "nearby_destinations" text[] NOT NULL DEFAULT '{}',
+      "crowd_level" varchar(20) NOT NULL DEFAULT 'Medium',
+      "ideal_duration_min" integer NOT NULL DEFAULT 3,
+      "ideal_duration_max" integer NOT NULL DEFAULT 7,
       "created_at" timestamptz NOT NULL DEFAULT now(),
       "updated_at" timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE "destination_pois" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "destination_id" uuid NOT NULL REFERENCES "destinations"("id") ON DELETE CASCADE,
+      "name" text NOT NULL,
+      "category" varchar(50),
+      "description" text,
+      "address" text,
+      "latitude" numeric(9,6),
+      "longitude" numeric(9,6),
+      "opening_hours" jsonb,
+      "avg_visit_hours" numeric(3,1),
+      "entry_fee_inr" integer,
+      "rating" numeric(3,1),
+      "priority" integer NOT NULL DEFAULT 5,
+      "best_time_of_day" varchar(20),
+      "image_url" text,
+      "tags" text[] NOT NULL DEFAULT '{}',
+      "is_active" boolean NOT NULL DEFAULT true
+    );
+
+    CREATE TABLE "destination_collections" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "slug" varchar(100) NOT NULL UNIQUE,
+      "title" text NOT NULL,
+      "subtitle" text,
+      "description" text,
+      "icon" varchar(10),
+      "gradient" text,
+      "destination_slugs" text[] NOT NULL DEFAULT '{}',
+      "is_active" boolean NOT NULL DEFAULT true,
+      "sort_order" integer NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE "destination_image_assets" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "destination_id" uuid NOT NULL REFERENCES "destinations"("id") ON DELETE CASCADE,
+      "asset_type" varchar(20) NOT NULL DEFAULT 'hero',
+      "source_provider" varchar(40) NOT NULL DEFAULT 'database_seed',
+      "source_url" text,
+      "storage_path" text,
+      "public_url" text NOT NULL,
+      "alt_text" text NOT NULL,
+      "width" integer,
+      "height" integer,
+      "blur_data_url" text,
+      "credit_name" varchar(200),
+      "credit_url" text,
+      "license" varchar(50),
+      "sort_order" integer NOT NULL DEFAULT 0,
+      "status" varchar(20) NOT NULL DEFAULT 'ready',
+      "created_at" timestamptz NOT NULL DEFAULT now(),
+      "updated_at" timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE "user_wishlists" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "user_id" uuid NOT NULL,
+      "destination_id" uuid NOT NULL REFERENCES "destinations"("id") ON DELETE CASCADE,
+      "added_at" timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE "saved_itineraries" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "user_id" uuid NOT NULL,
+      "destination_id" uuid REFERENCES "destinations"("id") ON DELETE SET NULL,
+      "title" text,
+      "duration_days" integer,
+      "travelers" integer,
+      "budget_inr" integer,
+      "itinerary_json" jsonb NOT NULL,
+      "mode" varchar(5),
+      "created_at" timestamptz NOT NULL DEFAULT now()
     );
 
     CREATE TABLE "trips" (

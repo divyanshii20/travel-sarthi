@@ -312,7 +312,10 @@ export function PlanPage() {
       ...(v.origin.trim() ? { flightInfo: { origin: v.origin.trim() } } : {}),
     };
     const res = await generate(body);
-    if (res.data != null) { setItinerary(res.data); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    if (res.data?.itinerary != null) {
+      setItinerary(res.data.itinerary);
+      navigate(`/itinerary/${res.data.itinerary.id}`);
+    }
   }
 
   function onSubmitB(v: ModeBValues) {

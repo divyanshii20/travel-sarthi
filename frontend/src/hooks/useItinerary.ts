@@ -20,8 +20,8 @@ export function useGenerateItinerary() {
   return useMutation({
     mutationFn: (body: GenerateItineraryRequestDTO) => itineraryService.generate(body),
     onSuccess: (res) => {
-      if (res.data != null) {
-        qc.setQueryData(['itinerary', res.data.id], res.data);
+      if (res.data?.itinerary != null) {
+        qc.setQueryData(['itinerary', res.data.itinerary.id], res.data.itinerary);
       }
     },
   });
