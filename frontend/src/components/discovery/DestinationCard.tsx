@@ -44,21 +44,36 @@ export function DestinationCard({ destination: dest, rank, onCompare, onViewDeta
 
   return (
     <motion.div
-      className="card overflow-hidden group cursor-pointer relative"
+      className="overflow-hidden group cursor-pointer relative"
       whileHover={{ y: -6 }}
-      transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
-      style={{ borderRadius: 'var(--radius-lg)' }}
+      transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        borderRadius: 'var(--radius-lg)',
+        background: 'var(--bg-card)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)',
+        border: '1px solid rgba(0,0,0,0.06)',
+        transition: 'box-shadow 0.35s ease, border-color 0.35s ease',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 30px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.06)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(232,98,42,0.15)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,0,0,0.06)';
+      }}
     >
       {/* ── Hero Image ── */}
-      <div className="relative overflow-hidden" style={{ height: 220 }}>
+      <div className="relative overflow-hidden" style={{ height: 240 }}>
         <img
           src={imgSrc}
           alt={dest.heroImage.alt || dest.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
           onError={() => setImgSrc(FALLBACK_IMAGE)}
+          loading="lazy"
         />
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+        {/* Gradient overlay — cinematic vignette */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.08) 40%, rgba(0,0,0,0.12) 100%)' }} />
 
         {/* Wishlist button */}
         <button
@@ -106,19 +121,22 @@ export function DestinationCard({ destination: dest, rank, onCompare, onViewDeta
         </div>
       </div>
 
+      {/* Saffron accent line */}
+      <div className="h-[2px]" style={{ background: 'linear-gradient(to right, var(--color-saffron), var(--color-gold), transparent)' }} />
+
       {/* ── Card Body ── */}
-      <div className="p-4 flex flex-col gap-2.5">
+      <div className="p-4 pt-3.5 flex flex-col gap-2.5">
         {/* Flag + name + country */}
         <div>
-          <p className="text-sm font-display font-bold text-primary leading-tight">
+          <p className="text-sm font-display font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
             {dest.flagEmoji != null && dest.flagEmoji.length > 0 && (
-              <span className="mr-1">{dest.flagEmoji}</span>
+              <span className="mr-1.5">{dest.flagEmoji}</span>
             )}
             {dest.name}
-            <span className="text-muted font-normal"> · {dest.country}</span>
+            <span className="font-normal" style={{ color: 'var(--text-muted)' }}> · {dest.country}</span>
           </p>
-          <p className="text-xs italic mt-0.5 line-clamp-2" style={{ color: 'var(--text-muted)' }}>
-            "{dest.tagline}"
+          <p className="text-xs mt-1 line-clamp-1 font-serif italic" style={{ color: 'var(--text-secondary)', letterSpacing: '0.01em' }}>
+            {dest.tagline}
           </p>
         </div>
 
@@ -163,10 +181,10 @@ export function DestinationCard({ destination: dest, rank, onCompare, onViewDeta
         {/* Budget + CTAs */}
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>From</p>
-            <p className="font-display font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
-              ₹{budget != null ? budget.toLocaleString('en-IN') : '—'}
-              <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>/day</span>
+            <p className="text-[10px] uppercase tracking-wider font-medium" style={{ color: 'var(--text-muted)' }}>from</p>
+            <p className="font-display font-bold" style={{ color: 'var(--text-primary)', fontSize: '1.05rem', lineHeight: 1.2 }}>
+              <span style={{ color: 'var(--color-saffron)' }}>₹</span>{budget != null ? budget.toLocaleString('en-IN') : '—'}
+              <span className="text-[10px] font-normal ml-0.5" style={{ color: 'var(--text-muted)' }}>/day</span>
             </p>
           </div>
           <div className="flex items-center gap-1.5">
@@ -196,37 +214,39 @@ export function DestinationCard({ destination: dest, rank, onCompare, onViewDeta
         </div>
       </div>
 
-      {/* ── Hover Panel (highlights) ── */}
-      <AnimatePresence>
-        <motion.div
-          className="absolute inset-x-0 bottom-0 z-20 pointer-events-none"
-          initial={{ opacity: 0, y: 8 }}
-          whileHover={{ opacity: 1, y: 0 }}
-          style={{ display: 'none' }}
-        />
-      </AnimatePresence>
-
-      {/* Hover overlay — shown via CSS group-hover */}
+      {/* ── Hover overlay with slide-up transition ── */}
       <div
-        className="absolute inset-0 z-20 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto"
-        style={{ background: 'rgba(17,17,24,0.82)', borderRadius: 'var(--radius-lg)' }}
+        className="absolute inset-0 z-20 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-all duration-400 pointer-events-none group-hover:pointer-events-auto"
+        style={{ borderRadius: 'var(--radius-lg)' }}
       >
-        <div className="p-4 pb-5">
-          <p className="text-white font-display font-bold text-base mb-2">Highlights</p>
-          <div className="flex flex-col gap-1.5 mb-4">
-            {dest.highlights.slice(0, 3).map((h, i) => (
-              <div key={i} className="flex items-start gap-2">
+        {/* Glass backdrop */}
+        <div className="absolute inset-0" style={{ background: 'rgba(15,15,18,0.78)', backdropFilter: 'blur(4px)', borderRadius: 'var(--radius-lg)' }} />
+
+        {/* Content slides up */}
+        <div className="relative p-5 pb-5 translate-y-2 group-hover:translate-y-0 transition-transform duration-400 ease-out">
+          {/* Gold accent */}
+          <div className="w-8 h-0.5 rounded-full mb-3" style={{ background: 'var(--color-gold)' }} />
+
+          <p className="text-white font-display font-bold text-base mb-3 tracking-tight">Highlights</p>
+          <div className="flex flex-col gap-2 mb-5">
+            {dest.highlights.length > 0 ? dest.highlights.slice(0, 3).map((h, i) => (
+              <div key={i} className="flex items-start gap-2.5">
                 <span
                   className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
                   style={{ background: 'var(--color-saffron)' }}
                 />
-                <p className="text-white/80 text-xs leading-relaxed">{h.title}</p>
+                <p className="text-white/75 text-xs leading-relaxed">{h.title}</p>
               </div>
-            ))}
+            )) : (
+              <p className="text-white/50 text-xs italic">Explore this destination to discover its hidden wonders</p>
+            )}
           </div>
           <button
-            className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white py-2.5 rounded-xl transition-all pointer-events-auto"
-            style={{ background: 'var(--color-saffron)' }}
+            className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white py-3 rounded-xl transition-all pointer-events-auto"
+            style={{
+              background: 'linear-gradient(135deg, var(--color-saffron), #E8622A)',
+              boxShadow: '0 4px 16px rgba(232,98,42,0.3)',
+            }}
             onClick={() => { if (onViewDetails != null) onViewDetails(dest); }}
           >
             View Details

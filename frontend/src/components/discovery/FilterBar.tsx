@@ -24,14 +24,14 @@ interface FilterBarProps {
 }
 
 const CONTINENTS = [
-  { label: 'All', value: '' },
-  { label: 'India', value: 'india' },
-  { label: 'Asia', value: 'asia' },
-  { label: 'Europe', value: 'europe' },
-  { label: 'Middle East', value: 'middle_east' },
-  { label: 'Africa', value: 'africa' },
-  { label: 'Americas', value: 'americas' },
-  { label: 'Oceania', value: 'oceania' },
+  { label: 'All', value: '', icon: '🌍' },
+  { label: 'India', value: 'india', icon: '🇮🇳' },
+  { label: 'Asia', value: 'asia', icon: '🌏' },
+  { label: 'Europe', value: 'europe', icon: '🏰' },
+  { label: 'Middle East', value: 'middle_east', icon: '🕌' },
+  { label: 'Africa', value: 'africa', icon: '🌍' },
+  { label: 'Americas', value: 'americas', icon: '🗽' },
+  { label: 'Oceania', value: 'oceania', icon: '🏝' },
 ];
 
 const QUICK_FILTERS: Array<{ icon: string; label: string; key: keyof FilterState | 'tag'; value: string | boolean }> = [
@@ -133,7 +133,7 @@ export function FilterBar({ filters, onFiltersChange, totalResults }: FilterBarP
                 fontSize: 13,
               }}
             >
-              {c.label}
+              <span className="mr-1">{c.icon}</span>{c.label}
             </button>
           ))}
         </div>

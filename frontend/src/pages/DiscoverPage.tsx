@@ -160,59 +160,93 @@ export function DiscoverPage() {
 
   return (
     <PageLayout noPadding>
-      {/* [A] HERO */}
-      <div className="relative overflow-hidden" style={{ height: 340, minHeight: 280 }}>
-        {/* Rotating background images */}
+      {/* [A] HERO — Premium Cinematic */}
+      <div className="relative overflow-hidden" style={{ height: 440, minHeight: 340 }}>
+        {/* Rotating background images with Ken Burns zoom */}
         {FALLBACK_HERO_IMAGES.map((src, i) => (
           <div
             key={i}
-            className="absolute inset-0 transition-opacity duration-1000"
+            className="absolute inset-0 transition-opacity duration-[1.5s] ease-in-out"
             style={{ opacity: i === heroImageIdx ? 1 : 0 }}
           >
             <img
               src={src}
               alt=""
               className="w-full h-full object-cover"
+              style={{
+                transform: i === heroImageIdx ? 'scale(1.08)' : 'scale(1)',
+                transition: 'transform 8s ease-out',
+              }}
               onError={() => {}}
             />
           </div>
         ))}
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
+        {/* Cinematic multi-layer overlay */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.75) 100%)' }} />
+        {/* Subtle warm tint overlay */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(232,98,42,0.08) 0%, transparent 50%, rgba(244,162,97,0.06) 100%)' }} />
 
         {/* Hero content */}
         <div className="relative z-10 h-full flex flex-col items-center justify-center px-4 text-center" style={{ paddingTop: 64 }}>
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-2xl"
           >
-            <p className="text-xs font-semibold text-white/60 mb-2 tracking-widest uppercase">
+            {/* Gold accent line */}
+            <div className="mx-auto mb-4 w-10 h-0.5 rounded-full" style={{ background: 'linear-gradient(to right, transparent, var(--color-gold), transparent)' }} />
+
+            <p className="text-xs font-semibold mb-3 tracking-[0.25em] uppercase" style={{ color: 'var(--color-gold-light, #F4A261)' }}>
               Travel Sarthi · AI-Powered Discovery
             </p>
-            <h1 className="font-display font-bold text-white mb-2 tracking-tight" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', lineHeight: 1.1 }}>
-              Discover Your Next Adventure
+            <h1 className="font-display font-bold text-white mb-3" style={{ fontSize: 'clamp(2rem, 5vw, 3.25rem)', lineHeight: 1.08, letterSpacing: '-0.02em' }}>
+              Discover Your Next
+              <span className="block" style={{ background: 'linear-gradient(to right, #F4A261, #FF6B35)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                Extraordinary Journey
+              </span>
             </h1>
-            <p className="text-white/70 text-sm mb-6">
-              230+ destinations · AI-ranked for Indian travelers · Real prices &amp; visa info
+            <p className="text-white/60 text-sm mb-2 font-light tracking-wide">
+              350+ handpicked destinations across 7 continents
+            </p>
+            <p className="text-white/40 text-xs mb-7 flex items-center justify-center gap-3">
+              <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-green-400/80" /> AI-Ranked</span>
+              <span>·</span>
+              <span>Real Prices in INR</span>
+              <span>·</span>
+              <span>Visa Info for Indians</span>
             </p>
 
-            {/* Search bar */}
+            {/* Premium Search bar */}
             <div
-              className="flex items-center gap-2 mx-auto"
-              style={{ maxWidth: 580, background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(16px)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.25)', padding: '6px 6px 6px 16px' }}
+              className="flex items-center gap-2 mx-auto group"
+              style={{
+                maxWidth: 600,
+                background: 'rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(24px) saturate(180%)',
+                borderRadius: 16,
+                border: '1px solid rgba(255,255,255,0.18)',
+                padding: '7px 7px 7px 18px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
+                transition: 'border-color 0.3s, box-shadow 0.3s',
+              }}
             >
-              <Search size={18} color="rgba(255,255,255,0.7)" className="shrink-0" />
+              <Search size={18} color="rgba(255,255,255,0.5)" className="shrink-0" />
               <input
-                className="flex-1 bg-transparent text-white placeholder-white/50 outline-none text-sm"
+                className="flex-1 bg-transparent text-white placeholder-white/40 outline-none text-sm font-light"
                 placeholder="Ask AI: 'beach in December visa-free under ₹3k/day'..."
                 value={aiSearchInput}
                 onChange={(e) => setAiSearchInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') void handleAiSearch(); }}
+                style={{ letterSpacing: '0.01em' }}
               />
               <button
-                className="flex items-center gap-1.5 text-sm font-semibold text-white px-4 py-2.5 rounded-xl shrink-0 transition-all disabled:opacity-50"
-                style={{ background: 'var(--color-saffron)' }}
+                className="flex items-center gap-1.5 text-sm font-semibold text-white px-5 py-2.5 shrink-0 transition-all disabled:opacity-50"
+                style={{
+                  background: 'linear-gradient(135deg, var(--color-saffron), #E8622A)',
+                  borderRadius: 12,
+                  boxShadow: '0 4px 16px rgba(232,98,42,0.35)',
+                }}
                 onClick={() => void handleAiSearch()}
                 disabled={isAiSearching}
               >
@@ -221,7 +255,7 @@ export function DiscoverPage() {
                 ) : (
                   <Sparkles size={15} />
                 )}
-                {isAiSearching ? 'Searching…' : 'AI Search'}
+                {isAiSearching ? 'Searching...' : 'AI Search'}
               </button>
             </div>
           </motion.div>
