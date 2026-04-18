@@ -278,6 +278,191 @@ function GlassForm({ accent, delay, children }: {
   );
 }
 
+// ─── Right Panel A ───────────────────────────────────────────────────────────
+
+function RightPanelA() {
+  const imgs = [
+    'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&q=80',
+    'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&q=80',
+    'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&q=80',
+    'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&q=80',
+  ];
+  return (
+    <div className="hidden lg:flex flex-col gap-6" style={{ paddingTop: 148, userSelect: 'none' }}>
+      {/* Collage */}
+      <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ position: 'relative', height: 330, width: '100%' }}>
+        {/* "Must see" badge */}
+        <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+          style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', zIndex: 20,
+            background: 'white', borderRadius: 99, padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 8,
+            boxShadow: '0 8px 28px rgba(0,0,0,0.13)' }}>
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#E8622A', display: 'inline-block', boxShadow: '0 0 0 3px rgba(232,98,42,0.22)' }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>Must see</span>
+        </motion.div>
+        {/* img1 top-left */}
+        <motion.div initial={{ opacity: 0, rotate: -5, y: 20 }} animate={{ opacity: 1, rotate: -5, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.7 }}
+          style={{ position: 'absolute', top: 20, left: 0, width: '48%', height: 158, borderRadius: 20, overflow: 'hidden', boxShadow: '0 16px 40px rgba(0,0,0,0.22)', zIndex: 1 }}>
+          <img src={imgs[0]} alt="" className="w-full h-full object-cover" />
+        </motion.div>
+        {/* img2 top-right */}
+        <motion.div initial={{ opacity: 0, rotate: 3, y: 20 }} animate={{ opacity: 1, rotate: 3, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.7 }}
+          style={{ position: 'absolute', top: 8, right: 0, width: '48%', height: 158, borderRadius: 20, overflow: 'hidden', boxShadow: '0 16px 40px rgba(0,0,0,0.22)', zIndex: 2 }}>
+          <img src={imgs[1]} alt="" className="w-full h-full object-cover" />
+        </motion.div>
+        {/* img3 bottom-left */}
+        <motion.div initial={{ opacity: 0, rotate: 4, y: 20 }} animate={{ opacity: 1, rotate: 4, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.7 }}
+          style={{ position: 'absolute', bottom: 0, left: 10, width: '46%', height: 150, borderRadius: 20, overflow: 'hidden', boxShadow: '0 16px 40px rgba(0,0,0,0.22)', zIndex: 1 }}>
+          <img src={imgs[2]} alt="" className="w-full h-full object-cover" />
+        </motion.div>
+        {/* img4 bottom-right */}
+        <motion.div initial={{ opacity: 0, rotate: -2, y: 20 }} animate={{ opacity: 1, rotate: -2, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.7 }}
+          style={{ position: 'absolute', bottom: 10, right: 10, width: '46%', height: 150, borderRadius: 20, overflow: 'hidden', boxShadow: '0 16px 40px rgba(0,0,0,0.22)', zIndex: 2 }}>
+          <img src={imgs[3]} alt="" className="w-full h-full object-cover" />
+        </motion.div>
+        {/* "+ Add to trip" CTA */}
+        <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+          style={{ position: 'absolute', bottom: 94, right: -14, zIndex: 20,
+            background: 'linear-gradient(135deg,#FF7A40,#E8622A)', borderRadius: 99,
+            padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 6,
+            boxShadow: '0 8px 28px rgba(232,98,42,0.45)' }}>
+          <span style={{ fontSize: 15, color: 'white', fontWeight: 700, lineHeight: 1 }}>+</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>Add to trip</span>
+        </motion.div>
+      </motion.div>
+
+      <p style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>
+        Add <span style={{ color: '#E8622A' }}>activities</span> you like
+      </p>
+
+      {/* Price comparison widget */}
+      <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+        style={{ background: 'rgba(255,255,255,0.90)', backdropFilter: 'blur(20px)',
+          borderRadius: 24, overflow: 'hidden',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.10)', border: '1px solid rgba(255,255,255,0.95)' }}>
+        <div style={{ position: 'relative', height: 150 }}>
+          <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80"
+            alt="Hotel" className="w-full h-full object-cover" />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.10)' }} />
+          <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ position: 'absolute', top: 10, left: 10, background: 'white', borderRadius: 99, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: '#E61E4D' }}>agoda</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#1a1a2e' }}>₹4,999</span>
+          </motion.div>
+          <motion.div animate={{ y: [0, 4, 0] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+            style={{ position: 'absolute', top: 10, right: 10, background: '#003580', borderRadius: 99, padding: '5px 12px', boxShadow: '0 4px 14px rgba(0,53,128,0.35)' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'white' }}>B. ₹5,499</span>
+          </motion.div>
+          <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+            style={{ position: 'absolute', bottom: 10, left: 10, background: 'white', borderRadius: 99, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }}>
+            <span style={{ fontSize: 9, fontWeight: 800, color: '#E8562A' }}>mmt</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#1a1a2e' }}>₹7,499</span>
+          </motion.div>
+          <motion.div animate={{ y: [0, 5, 0] }} transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
+            style={{ position: 'absolute', bottom: 10, right: 10, background: '#E8622A', borderRadius: 99, padding: '5px 12px', boxShadow: '0 4px 14px rgba(232,98,42,0.4)' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'white' }}>↗ ₹8,999</span>
+          </motion.div>
+        </div>
+        <div style={{ padding: '14px 18px' }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+            Find <span style={{ color: '#E8622A' }}>lowest</span> prices easily
+          </p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Compare across 50+ booking sites instantly</p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Right Panel B ───────────────────────────────────────────────────────────
+
+function RightPanelB() {
+  const imgs = [
+    'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&q=80',
+    'https://images.unsplash.com/photo-1520769669658-f07657f5a307?w=400&q=80',
+    'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=400&q=80',
+    'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=400&q=80',
+  ];
+  const labels = ['Bali', 'Iceland', 'Japan', 'Maldives'];
+  const deals = [
+    { dest: 'Bali, Indonesia', price: '₹28,999', tag: '🔥 Hot deal' },
+    { dest: 'Phuket, Thailand', price: '₹18,499', tag: '✈️ Direct flight' },
+    { dest: 'Maldives', price: '₹52,999', tag: '⭐ Premium' },
+  ];
+  return (
+    <div className="hidden lg:flex flex-col gap-6" style={{ paddingTop: 148, userSelect: 'none' }}>
+      {/* Collage */}
+      <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ position: 'relative', height: 330, width: '100%' }}>
+        {/* "AI picks for you" badge */}
+        <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+          style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', zIndex: 20,
+            background: 'white', borderRadius: 99, padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 8,
+            boxShadow: '0 8px 28px rgba(0,0,0,0.13)' }}>
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#0A6B66', display: 'inline-block', boxShadow: '0 0 0 3px rgba(10,107,102,0.22)' }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>AI picks for you</span>
+        </motion.div>
+        {[
+          { top: 20, left: 0, right: undefined, bottom: undefined, w: '48%', h: 158, rotate: -5, z: 1, delay: 0.2 },
+          { top: 8, right: 0, left: undefined, bottom: undefined, w: '48%', h: 158, rotate: 3, z: 2, delay: 0.3 },
+          { bottom: 0, left: 10, top: undefined, right: undefined, w: '46%', h: 150, rotate: 4, z: 1, delay: 0.4 },
+          { bottom: 10, right: 10, top: undefined, left: undefined, w: '46%', h: 150, rotate: -2, z: 2, delay: 0.5 },
+        ].map((p, i) => (
+          <motion.div key={i}
+            initial={{ opacity: 0, rotate: p.rotate, y: 20 }} animate={{ opacity: 1, rotate: p.rotate, y: 0 }}
+            transition={{ delay: p.delay, duration: 0.7 }}
+            style={{ position: 'absolute', top: p.top, left: p.left, right: p.right, bottom: p.bottom,
+              width: p.w, height: p.h, borderRadius: 20, overflow: 'hidden',
+              boxShadow: '0 16px 40px rgba(0,0,0,0.22)', zIndex: p.z }}>
+            <img src={imgs[i]} alt="" className="w-full h-full object-cover" />
+            <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: '3px 8px' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#0A6B66' }}>{labels[i]}</span>
+            </div>
+          </motion.div>
+        ))}
+        {/* "Surprise me" CTA */}
+        <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+          style={{ position: 'absolute', bottom: 94, right: -14, zIndex: 20,
+            background: 'linear-gradient(135deg,#12A899,#0A6B66)', borderRadius: 99,
+            padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 6,
+            boxShadow: '0 8px 28px rgba(10,107,102,0.45)' }}>
+          <span style={{ fontSize: 14, color: 'white' }}>✨</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>Surprise me</span>
+        </motion.div>
+      </motion.div>
+
+      <p style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>
+        Discover your <span style={{ color: '#0A6B66' }}>perfect destination</span>
+      </p>
+
+      {/* Deals widget */}
+      <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+        style={{ background: 'rgba(255,255,255,0.90)', backdropFilter: 'blur(20px)',
+          borderRadius: 24, overflow: 'hidden',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.10)', border: '1px solid rgba(255,255,255,0.95)' }}>
+        <div style={{ padding: '16px 18px 4px' }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+            This week's <span style={{ color: '#0A6B66' }}>best deals</span>
+          </p>
+        </div>
+        {deals.map((d, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 18px', borderTop: i === 0 ? 'none' : '1px solid rgba(0,0,0,0.06)' }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{d.dest}</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{d.tag}</p>
+            </div>
+            <p style={{ fontSize: 14, fontWeight: 800, color: '#0A6B66' }}>{d.price}</p>
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function PlanPage() {
@@ -495,7 +680,8 @@ export function PlanPage() {
 
             {/* ── Form body ── */}
             <div className="page-container py-12" style={{ position: 'relative', zIndex: 1 }}>
-              <div className="max-w-[680px] mx-auto">
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 380px', gap: '4rem', maxWidth: 1120, margin: '0 auto', alignItems: 'start' }}>
+              <div>
 
                 {/* Page intro */}
                 <motion.div className="mb-8"
@@ -625,6 +811,8 @@ export function PlanPage() {
                   </form>
                 </GlassForm>
               </div>
+              <RightPanelA />
+              </div>
             </div>
           </motion.div>
         )}
@@ -665,7 +853,8 @@ export function PlanPage() {
 
             {/* ── Form body ── */}
             <div className="page-container py-12" style={{ position: 'relative', zIndex: 1 }}>
-              <div className="max-w-[680px] mx-auto">
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 380px', gap: '4rem', maxWidth: 1120, margin: '0 auto', alignItems: 'start' }}>
+              <div>
 
                 {/* Page intro */}
                 <motion.div className="mb-8"
@@ -745,6 +934,8 @@ export function PlanPage() {
 
                   </form>
                 </GlassForm>
+              </div>
+              <RightPanelB />
               </div>
             </div>
           </motion.div>
