@@ -60,7 +60,7 @@ function AuthVisualPanel() {
     <div
       className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col"
       style={{
-        background: 'linear-gradient(160deg, #101D60 0%, #192580 40%, #0C1650 100%)',
+        background: 'linear-gradient(160deg, #FFCBA4 0%, #FF9A6C 40%, #E8622A 100%)',
       }}
     >
       {/* Ambient glow behind globe */}
@@ -68,13 +68,13 @@ function AuthVisualPanel() {
         position: 'absolute', top: '35%', left: '50%',
         transform: 'translate(-50%, -50%)',
         width: 500, height: 500, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(80,120,255,0.28) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(255,255,255,0.22) 0%, transparent 70%)',
         filter: 'blur(50px)', pointerEvents: 'none',
       }} />
       <div style={{
         position: 'absolute', bottom: '10%', left: '20%',
         width: 200, height: 200, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(232,98,42,0.15) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)',
         filter: 'blur(40px)', pointerEvents: 'none',
       }} />
 
