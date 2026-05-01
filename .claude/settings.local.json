@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(sed -n '244,270p' \"C:\\\\Users\\\\Divyanshi\\\\Downloads\\\\travel_sarthi\\\\travel-sarthi-shared-types\\\\src\\\\flights.ts\")",
+      "Bash(sed -n '19,70p' \"C:\\\\Users\\\\Divyanshi\\\\Downloads\\\\travel_sarthi\\\\travel-sarthi-shared-types\\\\src\\\\deals.ts\")",
+      "Bash(sed -n '48,70p' \"C:\\\\Users\\\\Divyanshi\\\\Downloads\\\\travel_sarthi\\\\travel-sarthi-shared-types\\\\src\\\\deals.ts\")",
+      "Bash(sed -n '77,100p' \"C:\\\\Users\\\\Divyanshi\\\\Downloads\\\\travel_sarthi\\\\travel-sarthi-shared-types\\\\src\\\\discovery.ts\")",
+      "Bash(sed -n '1,20p' \"C:\\\\Users\\\\Divyanshi\\\\Downloads\\\\travel_sarthi\\\\travel-sarthi-shared-types\\\\src\\\\discovery.ts\")",
+      "Bash(sed -n '53,65p' \"C:\\\\Users\\\\Divyanshi\\\\Downloads\\\\travel_sarthi\\\\travel-sarthi-shared-types\\\\src\\\\discovery.ts\")",
+      "Bash(sed -n '80,100p' \"C:\\\\Users\\\\Divyanshi\\\\Downloads\\\\travel_sarthi\\\\travel-sarthi-shared-types\\\\src\\\\itinerary.ts\")",
+      "Bash(sed -n '50,70p' \"C:\\\\Users\\\\Divyanshi\\\\Downloads\\\\travel_sarthi\\\\travel-sarthi-shared-types\\\\src\\\\chat.ts\")",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(npx vitest *)"
+    ]
+  }
+}
