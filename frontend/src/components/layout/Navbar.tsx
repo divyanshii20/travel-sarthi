@@ -16,7 +16,7 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const { user, isAuthenticated, clearAuth } = useAuthStore();
-  const { isNavDrawerOpen, toggleNavDrawer, closeNavDrawer } = useUIStore();
+  const { isNavDrawerOpen, toggleNavDrawer, closeNavDrawer, openModal } = useUIStore();
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -126,8 +126,8 @@ export function Navbar() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Link to="/login" className="btn-ghost px-5 py-2.5 text-sm">Sign In</Link>
-                  <Link to="/register" className="btn-primary px-5 py-2.5 text-sm">Get Started</Link>
+                  <button onClick={() => openModal('auth-signin')} className="btn-ghost px-5 py-2.5 text-sm">Sign In</button>
+                  <button onClick={() => openModal('auth-signup')} className="btn-primary px-5 py-2.5 text-sm">Get Started</button>
                 </div>
               )}
             </div>
@@ -173,8 +173,8 @@ export function Navbar() {
                   </>
                 ) : (
                   <div className="flex gap-2 py-1">
-                    <Link to="/login" onClick={closeNavDrawer} className="btn-ghost flex-1 py-2.5 text-sm text-center">Sign In</Link>
-                    <Link to="/register" onClick={closeNavDrawer} className="btn-primary flex-1 py-2.5 text-sm text-center">Get Started</Link>
+                    <button onClick={() => { closeNavDrawer(); openModal('auth-signin'); }} className="btn-ghost flex-1 py-2.5 text-sm text-center">Sign In</button>
+                    <button onClick={() => { closeNavDrawer(); openModal('auth-signup'); }} className="btn-primary flex-1 py-2.5 text-sm text-center">Get Started</button>
                   </div>
                 )}
               </div>
