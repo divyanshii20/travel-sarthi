@@ -343,6 +343,61 @@ describe('AuthModal — Sign Up submission', () => {
   });
 });
 
+describe('AuthModal — re-open regression', () => {
+  it('can be opened, closed, and re-opened multiple times', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AuthModal />);
+
+    // First open + close
+    openSignIn();
+    await waitForSignIn();
+    await user.click(screen.getByLabelText('Close'));
+    await waitFor(() => expect(useUIStore.getState().activeModal).toBeNull());
+
+    // Second open + close (this is the bug scenario)
+    openSignIn();
+    await waitForSignIn();
+    expect(screen.getByText('Welcome')).toBeInTheDocument();
+    await user.click(screen.getByLabelText('Close'));
+    await waitFor(() => expect(useUIStore.getState().activeModal).toBeNull());
+
+    // Third open should still work
+    openSignIn();
+    await waitForSignIn();
+    expect(screen.getByText('Welcome')).toBeInTheDocument();
+  });
+
+  it('can switch between signin and signup modals back-to-back', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AuthModal />);
+
+    openSignIn();
+    await waitForSignIn();
+    await user.click(screen.getByLabelText('Close'));
+    await waitFor(() => expect(useUIStore.getState().activeModal).toBeNull());
+
+    openSignUp();
+    await waitForSignUp();
+    expect(screen.getByText('Begin')).toBeInTheDocument();
+    await user.click(screen.getByLabelText('Close'));
+    await waitFor(() => expect(useUIStore.getState().activeModal).toBeNull());
+
+    openSignIn();
+    await waitForSignIn();
+    expect(screen.getByText('Welcome')).toBeInTheDocument();
+  });
+
+  it('body scroll is restored fully (overflow becomes empty string) on close', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AuthModal />);
+    openSignIn();
+    await waitForSignIn();
+    expect(document.body.style.overflow).toBe('hidden');
+    await user.click(screen.getByLabelText('Close'));
+    await waitFor(() => expect(document.body.style.overflow).toBe(''));
+  });
+});
+
 describe('AuthModal — Continue with Google CTA', () => {
   it('renders the Google button on Sign In view', async () => {
     renderWithProviders(<AuthModal />);

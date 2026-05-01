@@ -63,9 +63,8 @@ export function AuthModal() {
 
   useEffect(() => {
     if (!isOpen) return undefined;
-    const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
   useEffect(() => {
@@ -76,9 +75,14 @@ export function AuthModal() {
   }, [isOpen, closeModal]);
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
-        <div
+        <motion.div
+          key="auth-modal-root"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.22 }}
           style={{
             position: 'fixed', inset: 0, zIndex: 100,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -91,7 +95,7 @@ export function AuthModal() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.22 }}
             onClick={closeModal}
             style={{
               position: 'absolute', inset: 0,
@@ -103,10 +107,10 @@ export function AuthModal() {
 
           {/* Modal panel */}
           <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.97 }}
+            initial={{ opacity: 0, y: 18, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.97 }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: 12, scale: 0.97 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
             style={{
               position: 'relative',
               width: '100%', maxWidth: 980,
@@ -215,7 +219,7 @@ export function AuthModal() {
               </div>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
