@@ -158,6 +158,86 @@ type GeminiItineraryResponse = {
 };
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GEMINI CLIENT — multi-model auto-fallback
+   Google frequently renames / removes free-tier models. This helper tries
+   the configured GEMINI_MODEL first, then walks down a list of known-good
+   names if it returns 404. The first successful name is cached so we
+   don't pay the per-request retry cost after the first call.
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+const GEMINI_MODEL_FALLBACKS = [
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-preview-05-20',
+  'gemini-flash-latest',
+  'gemini-2.0-flash-001',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash-002',
+  'gemini-1.5-flash-8b-latest',
+];
+
+let cachedWorkingGeminiModel: string | null = null;
+
+async function callGeminiWithFallback(prompt: string): Promise<GeminiItineraryResponse> {
+  const candidates: string[] = [];
+  if (cachedWorkingGeminiModel) candidates.push(cachedWorkingGeminiModel);
+  if (env.GEMINI_MODEL && !candidates.includes(env.GEMINI_MODEL)) candidates.push(env.GEMINI_MODEL);
+  for (const m of GEMINI_MODEL_FALLBACKS) if (!candidates.includes(m)) candidates.push(m);
+
+  let lastError: unknown = new Error('No Gemini model attempted');
+
+  for (const model of candidates) {
+    try {
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
+        {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 16000,
+            responseMimeType: 'application/json',
+          },
+        },
+        { timeout: 60000 },
+      );
+
+      const candidate = response.data?.candidates?.[0];
+      const finishReason = candidate?.finishReason;
+      const text = candidate?.content?.parts?.[0]?.text;
+
+      if (typeof text !== 'string' || text.trim().length === 0) {
+        throw new Error(`Gemini returned an empty payload (finishReason: ${finishReason})`);
+      }
+      if (finishReason === 'MAX_TOKENS') {
+        logger.warn({ model, textLength: text.length }, 'Gemini hit token limit — JSON may be truncated');
+      }
+
+      const parsed = JSON.parse(text) as GeminiItineraryResponse;
+      validateGeminiResponse(parsed);
+
+      // Success — cache the working model name
+      if (cachedWorkingGeminiModel !== model) {
+        logger.info({ model, finishReason }, 'Gemini model worked — caching');
+        cachedWorkingGeminiModel = model;
+      }
+      return parsed;
+    } catch (err) {
+      lastError = err;
+      const status = axios.isAxiosError(err) ? err.response?.status : null;
+      // 404 = model name not available → try next. Other errors (429, 500) → bail out
+      if (status === 404) {
+        logger.warn({ model, status }, 'Gemini model not found — trying next');
+        if (cachedWorkingGeminiModel === model) cachedWorkingGeminiModel = null;
+        continue;
+      }
+      // Non-404: don't waste time trying other models for the same kind of failure
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    GROQ CLIENT (Llama 3.1 70B — lightweight tasks)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
@@ -239,34 +319,7 @@ export async function generateItinerary(
 
     let parsed: GeminiItineraryResponse;
     try {
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
-        {
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 16000,
-            responseMimeType: 'application/json',
-          },
-        },
-        { timeout: 60000 },
-      );
-
-      const candidate = response.data?.candidates?.[0];
-      const finishReason = candidate?.finishReason;
-      const text = candidate?.content?.parts?.[0]?.text;
-
-      logger.info({ finishReason, textLength: typeof text === 'string' ? text.length : 0 }, 'Gemini raw response received');
-
-      if (typeof text !== 'string' || text.trim().length === 0) {
-        throw new Error(`Gemini returned an empty payload (finishReason: ${finishReason})`);
-      }
-      if (finishReason === 'MAX_TOKENS') {
-        logger.warn({ textLength: text.length }, 'Gemini hit token limit — JSON may be truncated');
-      }
-
-      parsed = JSON.parse(text) as GeminiItineraryResponse;
-      validateGeminiResponse(parsed);
+      parsed = await callGeminiWithFallback(prompt);
     } catch (error) {
       const geminiStatus = axios.isAxiosError(error) ? error.response?.status : null;
       const geminiData = axios.isAxiosError(error) ? error.response?.data : null;
