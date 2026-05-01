@@ -280,8 +280,18 @@ export async function generateItinerary(
         validateGeminiResponse(parsed);
         logger.info('Groq fallback succeeded');
       } catch (groqError) {
-        logger.error({ geminiStatus, geminiData, groqError }, 'Both Gemini and Groq failed for itinerary generation');
-        throw new ExternalServiceError('AI', 'Unable to generate itinerary — AI services unavailable. Please try again in a moment.');
+        const groqMsg = groqError instanceof Error ? groqError.message : String(groqError);
+        const groqStatus = axios.isAxiosError(groqError) ? groqError.response?.status : null;
+        const groqData = axios.isAxiosError(groqError) ? groqError.response?.data : null;
+        const keyConfigured = env.GROQ_API_KEY !== 'placeholder' && env.GROQ_API_KEY.trim().length > 0;
+        logger.error(
+          { geminiStatus, groqMsg, groqStatus, groqData, groqKeyConfigured: keyConfigured },
+          'Both Gemini and Groq failed for itinerary generation',
+        );
+        const userMsg = !keyConfigured
+          ? 'AI service quota exhausted. Add a free GROQ_API_KEY to .env (https://console.groq.com/keys) to enable fallback.'
+          : 'Unable to generate itinerary — AI services unavailable. Please try again in a moment.';
+        throw new ExternalServiceError('AI', userMsg);
       }
     }
 
