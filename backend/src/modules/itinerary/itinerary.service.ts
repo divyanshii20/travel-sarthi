@@ -187,6 +187,7 @@ async function callGeminiWithFallback(prompt: string): Promise<GeminiItineraryRe
   let lastError: unknown = new Error('No Gemini model attempted');
 
   for (const model of candidates) {
+    const t0 = Date.now();
     try {
       const response = await axios.post(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
@@ -198,7 +199,7 @@ async function callGeminiWithFallback(prompt: string): Promise<GeminiItineraryRe
             responseMimeType: 'application/json',
           },
         },
-        { timeout: 60000 },
+        { timeout: 25000 }, // 25s — fail fast so we can fall through to Groq
       );
 
       const candidate = response.data?.candidates?.[0];
@@ -217,20 +218,23 @@ async function callGeminiWithFallback(prompt: string): Promise<GeminiItineraryRe
 
       // Success — cache the working model name
       if (cachedWorkingGeminiModel !== model) {
-        logger.info({ model, finishReason }, 'Gemini model worked — caching');
+        logger.info({ model, finishReason, ms: Date.now() - t0 }, 'Gemini model worked — caching');
         cachedWorkingGeminiModel = model;
       }
       return parsed;
     } catch (err) {
       lastError = err;
       const status = axios.isAxiosError(err) ? err.response?.status : null;
-      // 404 = model name not available → try next. Other errors (429, 500) → bail out
+      const code = axios.isAxiosError(err) ? err.code : null;
+      const elapsed = Date.now() - t0;
+      // 404 = model name not available → try next.
+      // Other errors (429, 500, timeout, etc.) → bail to Groq immediately.
       if (status === 404) {
-        logger.warn({ model, status }, 'Gemini model not found — trying next');
+        logger.warn({ model, status, ms: elapsed }, 'Gemini model not found — trying next');
         if (cachedWorkingGeminiModel === model) cachedWorkingGeminiModel = null;
         continue;
       }
-      // Non-404: don't waste time trying other models for the same kind of failure
+      logger.warn({ model, status, code, ms: elapsed }, 'Gemini failed (non-404) — bailing to Groq');
       throw err;
     }
   }
@@ -267,33 +271,62 @@ async function callGroq(systemPrompt: string, userPrompt: string, maxTokens = 20
   }
 }
 
+// Groq sometimes deprecates models too — keep a small fallback list.
+const GROQ_MODEL_FALLBACKS = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'llama3-70b-8192',
+];
+
 async function callGroqForItinerary(prompt: string): Promise<GeminiItineraryResponse> {
   if (env.GROQ_API_KEY === 'placeholder' || env.GROQ_API_KEY.trim().length === 0) {
     throw new Error('Groq API key not configured');
   }
-  const res = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
-    {
-      model: 'llama-3.3-70b-versatile',
-      messages: [
+  let lastError: unknown = new Error('No Groq model attempted');
+
+  for (const model of GROQ_MODEL_FALLBACKS) {
+    const t0 = Date.now();
+    try {
+      logger.info({ model }, 'Groq attempt');
+      const res = await axios.post(
+        'https://api.groq.com/openai/v1/chat/completions',
         {
-          role: 'system',
-          content: 'You are an elite travel architect. You MUST respond with ONLY valid JSON — no markdown, no explanation, no code blocks. Output the raw JSON object directly.',
+          model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an elite travel architect. You MUST respond with ONLY valid JSON — no markdown, no explanation, no code blocks. Output the raw JSON object directly.',
+            },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.3,
+          max_tokens: 8192,
+          response_format: { type: 'json_object' },
         },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 8192,
-      response_format: { type: 'json_object' },
-    },
-    {
-      headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-      timeout: 120000,
-    },
-  );
-  const text = (res.data?.choices?.[0]?.message?.content ?? '').trim();
-  if (text.length === 0) throw new Error('Groq returned empty itinerary');
-  return JSON.parse(text) as GeminiItineraryResponse;
+        {
+          headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+          timeout: 45000, // 45s, not 120s — fail fast
+        },
+      );
+      const text = (res.data?.choices?.[0]?.message?.content ?? '').trim();
+      if (text.length === 0) throw new Error('Groq returned empty itinerary');
+      const parsed = JSON.parse(text) as GeminiItineraryResponse;
+      logger.info({ model, ms: Date.now() - t0, bytes: text.length }, 'Groq success');
+      return parsed;
+    } catch (err) {
+      lastError = err;
+      const status = axios.isAxiosError(err) ? err.response?.status : null;
+      const code = axios.isAxiosError(err) ? err.code : null;
+      const data = axios.isAxiosError(err) ? err.response?.data : null;
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn({ model, status, code, msg, data, ms: Date.now() - t0 }, 'Groq attempt failed');
+      // 401/403 = bad key → no point trying other models
+      if (status === 401 || status === 403) throw err;
+      // 404/400 → model deprecated, try next
+      // Otherwise (timeout, 5xx) → try next anyway
+    }
+  }
+  throw lastError;
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
