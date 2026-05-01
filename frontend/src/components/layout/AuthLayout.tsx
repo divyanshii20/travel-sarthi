@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plane, Bed, UtensilsCrossed, Train, Sparkles } from 'lucide-react';
+import { Plane, MapPin, Sparkles } from 'lucide-react';
 import { pageVariants } from '@/lib/animations';
 
 interface AuthLayoutProps {
@@ -10,307 +10,334 @@ interface AuthLayoutProps {
   subtitle?: string;
 }
 
+// ─── Load premium fonts ───────────────────────────────────────────────────────
+function usePremiumFont() {
+  useEffect(() => {
+    const id = 'auth-premium-font';
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href =
+      'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap';
+    document.head.appendChild(link);
+  }, []);
+}
+
+// ─── Main layout ──────────────────────────────────────────────────────────────
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
+  usePremiumFont();
+
   return (
-    <div className="min-h-screen flex">
-      {/* Left panel: form */}
+    <div style={{ minHeight: '100vh', display: 'flex', fontFamily: '"DM Sans", sans-serif' }}>
+
+      {/* ── LEFT — Form panel ─────────────────────────────────────────── */}
       <motion.div
-        className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-12 bg-page"
         variants={pageVariants}
         initial="hidden"
         animate="visible"
+        style={{
+          width: '44%', minHeight: '100vh',
+          background: '#FFFCF8',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          padding: '56px 68px',
+          position: 'relative', zIndex: 2,
+          boxShadow: '6px 0 80px rgba(0,0,0,0.08)',
+        }}
       >
-        <div className="max-w-sm w-full mx-auto">
-          <Link to="/" className="flex items-center gap-1.5 font-display font-bold text-xl mb-8">
-            <span className="text-gradient-saffron">Travel</span>
-            <span className="text-primary">Sarthi</span>
-          </Link>
-          <h1 className="text-3xl font-display font-bold text-primary mb-1">{title}</h1>
-          {subtitle != null && <p className="text-sm text-secondary mb-6">{subtitle}</p>}
-          {children}
+        {/* Saffron left edge accent */}
+        <div style={{
+          position: 'absolute', left: 0, top: '10%', bottom: '10%', width: 3,
+          background: 'linear-gradient(180deg, transparent, #E8622A 30%, #FF9A6C 70%, transparent)',
+          borderRadius: '0 2px 2px 0',
+        }} />
+
+        {/* Subtle corner mesh decoration */}
+        <svg
+          style={{ position: 'absolute', top: 0, right: 0, opacity: 0.07, pointerEvents: 'none' }}
+          width="220" height="220" viewBox="0 0 220 220"
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <line key={i} x1={220} y1={i * 36} x2={i * 36} y2={220}
+              stroke="#E8622A" strokeWidth="1" />
+          ))}
+          <circle cx="220" cy="0" r="60" fill="none" stroke="#E8622A" strokeWidth="1" />
+          <circle cx="220" cy="0" r="110" fill="none" stroke="#E8622A" strokeWidth="0.6" />
+        </svg>
+
+        {/* Bottom subtle dot grid */}
+        <svg
+          style={{ position: 'absolute', bottom: 0, left: 0, opacity: 0.055, pointerEvents: 'none' }}
+          width="180" height="180" viewBox="0 0 180 180"
+        >
+          {Array.from({ length: 6 }).map((_, row) =>
+            Array.from({ length: 6 }).map((_, col) => (
+              <circle key={`${row}-${col}`} cx={col * 30 + 15} cy={row * 30 + 15} r="2" fill="#E8622A" />
+            ))
+          )}
+        </svg>
+
+        <div style={{ maxWidth: 360, width: '100%', margin: '0 auto' }}>
+
+          {/* Logo */}
+          <motion.div
+            initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 48, textDecoration: 'none' }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 11,
+                background: 'linear-gradient(135deg, #FF8B5A, #E8622A)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 6px 22px rgba(232,98,42,0.38)',
+              }}>
+                <Plane size={17} color="white" />
+              </div>
+              <span style={{
+                fontFamily: '"Cormorant Garamond", serif',
+                fontSize: 24, letterSpacing: '0.01em',
+              }}>
+                <span style={{ fontWeight: 600, color: '#E8622A' }}>Travel</span>
+                <span style={{ fontWeight: 400, color: '#1A1208' }}> Sarthi</span>
+              </span>
+            </Link>
+          </motion.div>
+
+          {/* Section tag */}
+          <motion.div
+            initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}
+          >
+            <div style={{ width: 22, height: 1.5, background: '#E8622A', borderRadius: 2 }} />
+            <span style={{
+              fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase',
+              color: '#C47040', fontWeight: 500,
+            }}>
+              Voyager Portal
+            </span>
+          </motion.div>
+
+          {/* Heading */}
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              fontFamily: '"Cormorant Garamond", serif',
+              fontSize: 50, fontWeight: 300, lineHeight: 1.08,
+              color: '#1A1208', letterSpacing: '-0.025em',
+              marginBottom: subtitle ? 10 : 32,
+            }}
+          >
+            {title}
+          </motion.h1>
+
+          {subtitle && (
+            <motion.p
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.22 }}
+              style={{ fontSize: 13.5, color: '#9A7A60', marginBottom: 32, lineHeight: 1.55 }}
+            >
+              {subtitle}
+            </motion.p>
+          )}
+
+          {/* Ornamental rule before form */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            marginBottom: 28,
+          }}>
+            <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, rgba(232,98,42,0.25), transparent)' }} />
+            <Sparkles size={12} color="#E8622A" opacity={0.6} />
+            <div style={{ flex: 1, height: 1, background: 'linear-gradient(to left, rgba(232,98,42,0.25), transparent)' }} />
+          </div>
+
+          {/* Form content from LoginPage / RegisterPage */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.28, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {children}
+          </motion.div>
+        </div>
+
+        {/* Bottom destinations ticker */}
+        <div style={{
+          position: 'absolute', bottom: 26, left: 68, right: 68,
+          display: 'flex', alignItems: 'center', gap: 0, overflow: 'hidden',
+        }}>
+          <span style={{ fontSize: 9.5, color: '#C4A898', letterSpacing: '0.16em', textTransform: 'uppercase', marginRight: 14, flexShrink: 0 }}>Explore</span>
+          {['Goa · ', 'Rajasthan · ', 'Kerala · ', 'Bali · ', 'Santorini · ', 'Maldives · ', 'Himachal · '].map((d) => (
+            <span key={d} style={{ fontSize: 10, color: '#BFAA98', letterSpacing: '0.05em', flexShrink: 0 }}>{d}</span>
+          ))}
         </div>
       </motion.div>
 
-      {/* Right panel */}
-      <AuthVisualPanel />
-    </div>
-  );
-}
+      {/* ── RIGHT — Immersive visual panel ───────────────────────────── */}
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
 
-// ─── Animated Globe Visual Panel ─────────────────────────────────────────────
-
-function AuthVisualPanel() {
-  const ICON_NODES = [
-    { icon: <Plane size={20} />,           top: 80,  left: 80,  delay: 0 },
-    { icon: <Bed size={20} />,             top: 80,  right: 80, delay: 0.8 },
-    { icon: <UtensilsCrossed size={20} />, bottom: 180, left: 80,  delay: 1.6 },
-    { icon: <Train size={20} />,           bottom: 180, right: 80, delay: 2.4 },
-  ];
-
-  // Star positions seeded
-  const stars = Array.from({ length: 28 }, (_, i) => ({
-    top:  ((i * 53 + 7)  % 100),
-    left: ((i * 79 + 13) % 100),
-    size: i % 5 === 0 ? 3 : 2,
-    delay: (i * 0.19) % 5,
-    dur:   2.5 + (i % 4) * 0.7,
-  }));
-
-  return (
-    <div
-      className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col"
-      style={{
-        background: 'linear-gradient(160deg, #FFCBA4 0%, #FF9A6C 40%, #E8622A 100%)',
-      }}
-    >
-      {/* Ambient glow behind globe */}
-      <div style={{
-        position: 'absolute', top: '35%', left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 500, height: 500, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(255,255,255,0.22) 0%, transparent 70%)',
-        filter: 'blur(50px)', pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute', bottom: '10%', left: '20%',
-        width: 200, height: 200, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)',
-        filter: 'blur(40px)', pointerEvents: 'none',
-      }} />
-
-      {/* Stars */}
-      {stars.map((s, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0.2 }}
-          animate={{ opacity: [0.2, 0.9, 0.2], scale: [1, 1.5, 1] }}
-          transition={{ duration: s.dur, repeat: Infinity, ease: 'easeInOut', delay: s.delay }}
+        {/* Hero image */}
+        <img
+          src="https://images.unsplash.com/photo-1598091383021-15ddea10925d?w=1600&q=88"
+          alt="Rajasthan palace"
           style={{
-            position: 'absolute',
-            top: `${s.top}%`, left: `${s.left}%`,
-            width: s.size, height: s.size,
-            borderRadius: '50%',
-            background: 'white',
-            pointerEvents: 'none',
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: 'center 40%',
           }}
         />
-      ))}
 
-      {/* Brand – top centre */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.15 }}
-        style={{
-          position: 'absolute', top: 32, left: '50%',
-          transform: 'translateX(-50%)', zIndex: 10,
-          display: 'flex', alignItems: 'center', gap: 10,
-        }}
-      >
-        <span style={{
-          width: 34, height: 34, borderRadius: 10,
-          background: 'rgba(255,255,255,0.12)',
-          border: '1px solid rgba(255,255,255,0.28)',
-          backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Plane size={15} color="white" />
-        </span>
-        <span style={{ fontFamily: 'serif', fontWeight: 700, fontSize: 20, color: 'white', letterSpacing: '-0.01em' }}>
-          Travel Sarthi
-        </span>
-      </motion.div>
+        {/* Gradient layers */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(255,252,248,0.12) 0%, transparent 25%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(12,8,4,0.18) 0%, transparent 50%, rgba(12,8,4,0.65) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,6,2,0.82) 0%, transparent 55%)' }} />
 
-      {/* ── Globe scene – vertically centred, shifted up to leave room for text ── */}
-      <div style={{
-        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        paddingBottom: 160,
-      }}>
-        <div style={{ position: 'relative', width: 380, height: 380 }}>
-
-          {/* 4 floating service icon nodes */}
-          {ICON_NODES.map((n, i) => (
-            <motion.div
-              key={i}
-              animate={{ y: [0, -9, 0] }}
-              transition={{ duration: 4 + i * 0.4, repeat: Infinity, ease: 'easeInOut', delay: n.delay }}
-              style={{
-                position: 'absolute',
-                top: n.top as any, left: n.left as any,
-                right: (n as any).right as any, bottom: (n as any).bottom as any,
-                width: 52, height: 52, borderRadius: '50%',
-                background: 'white',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 8px 28px rgba(0,0,0,0.30)',
-                color: '#E8622A', zIndex: 6,
-              }}
-            >
-              {n.icon}
-            </motion.div>
-          ))}
-
-          {/* Main SVG – globe + grid + flights */}
-          <motion.svg
-            viewBox="0 0 380 380"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <defs>
-              {/* Globe radial gradient */}
-              <radialGradient id="gGrad" cx="35%" cy="28%" r="68%">
-                <stop offset="0%"   stopColor="#7BA8FF" />
-                <stop offset="45%"  stopColor="#2255D8" />
-                <stop offset="100%" stopColor="#0B2A99" />
-              </radialGradient>
-              {/* Shine overlay */}
-              <radialGradient id="gShine" cx="30%" cy="25%" r="55%">
-                <stop offset="0%"   stopColor="white" stopOpacity="0.28" />
-                <stop offset="100%" stopColor="white" stopOpacity="0" />
-              </radialGradient>
-              {/* Clip globe */}
-              <clipPath id="gClip">
-                <circle cx="190" cy="190" r="125" />
-              </clipPath>
-              {/* Flight arc paths */}
-              <path id="fa1" d="M 60,155 Q 190,30  320,155" />
-              <path id="fa2" d="M 75,240 Q 190,360 305,240" />
-            </defs>
-
-            {/* Globe fill */}
-            <circle cx="190" cy="190" r="125" fill="url(#gGrad)" />
-
-            {/* Latitude lines */}
-            <g clipPath="url(#gClip)" fill="none" stroke="white" strokeWidth="0.9">
-              <ellipse cx="190" cy="190" rx="125" ry="40"  opacity="0.28" />
-              <ellipse cx="190" cy="160" rx="108" ry="35"  opacity="0.20" />
-              <ellipse cx="190" cy="130" rx="63"  ry="21"  opacity="0.16" />
-              <ellipse cx="190" cy="220" rx="108" ry="35"  opacity="0.20" />
-              <ellipse cx="190" cy="250" rx="63"  ry="21"  opacity="0.16" />
-            </g>
-
-            {/* Longitude lines */}
-            <g clipPath="url(#gClip)" fill="none" stroke="white" strokeWidth="0.9">
-              <ellipse cx="190" cy="190" rx="39"  ry="125" opacity="0.22" />
-              <ellipse cx="190" cy="190" rx="28"  ry="125" opacity="0.16" transform="rotate(50 190 190)" />
-              <ellipse cx="190" cy="190" rx="28"  ry="125" opacity="0.16" transform="rotate(-50 190 190)" />
-              <line x1="65" y1="190" x2="315" y2="190"     opacity="0.18" />
-            </g>
-
-            {/* Globe shine */}
-            <circle cx="190" cy="190" r="125" fill="url(#gShine)" />
-
-            {/* Outer soft ring */}
-            <circle cx="190" cy="190" r="148"
-              fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="1.5"
-              strokeDasharray="3 8" />
-
-            {/* City dots on globe */}
-            {[
-              { cx: 228, cy: 178 }, // Delhi-ish
-              { cx: 260, cy: 208 }, // SE Asia
-              { cx: 155, cy: 172 }, // Europe
-              { cx: 142, cy: 205 }, // Middle East
-            ].map((p, i) => (
-              <g key={i}>
-                <motion.circle
-                  cx={p.cx} cy={p.cy} r={7}
-                  fill="none" stroke="rgba(255,190,100,0.65)" strokeWidth="1"
-                  animate={{ r: [7, 13, 7], opacity: [0.65, 0, 0.65] }}
-                  transition={{ duration: 2.8, repeat: Infinity, ease: 'easeOut', delay: i * 0.55 }}
-                />
-                <circle cx={p.cx} cy={p.cy} r={4} fill="#FFB84A" />
-              </g>
-            ))}
-
-            {/* ── Flight arc 1 (above globe) ── */}
-            <path d="M 60,155 Q 190,30 320,155"
-              fill="none" stroke="rgba(255,200,100,0.45)"
-              strokeWidth="1.5" strokeDasharray="5 8" />
-
-            {/* Arc 1 endpoint dots */}
-            <circle cx="60"  cy="155" r="5" fill="#FFB84A" />
-            <circle cx="60"  cy="155" r="10" fill="none" stroke="rgba(255,184,74,0.45)" strokeWidth="1.5" />
-            <circle cx="320" cy="155" r="5" fill="#FFB84A" />
-            <circle cx="320" cy="155" r="10" fill="none" stroke="rgba(255,184,74,0.45)" strokeWidth="1.5" />
-
-            {/* Plane 1 along arc 1 */}
-            <g>
-              <animateMotion dur="8s" repeatCount="indefinite" rotate="auto">
-                <mpath href="#fa1" />
-              </animateMotion>
-              <circle r="10" fill="white" fillOpacity="0.95" />
-              <path d="M -5.5,0 L 6,-2.5 L 5,0 L 6,2.5 Z M 0,-2.5 L 0,2.5"
-                fill="#E8622A" stroke="#E8622A" strokeWidth="0.5" />
-            </g>
-
-            {/* ── Flight arc 2 (below globe) ── */}
-            <path d="M 75,240 Q 190,360 305,240"
-              fill="none" stroke="rgba(180,210,255,0.40)"
-              strokeWidth="1.2" strokeDasharray="5 8" />
-
-            <circle cx="75"  cy="240" r="4.5" fill="rgba(180,210,255,0.8)" />
-            <circle cx="305" cy="240" r="4.5" fill="rgba(180,210,255,0.8)" />
-
-            {/* Plane 2 along arc 2 (reverse direction) */}
-            <g>
-              <animateMotion dur="11s" repeatCount="indefinite" rotate="auto"
-                keyPoints="1;0" keyTimes="0;1" calcMode="linear">
-                <mpath href="#fa2" />
-              </animateMotion>
-              <circle r="8" fill="white" fillOpacity="0.90" />
-              <path d="M -4.5,0 L 5,-2 L 4,0 L 5,2 Z"
-                fill="#4A80FF" />
-            </g>
-          </motion.svg>
-        </div>
-      </div>
-
-      {/* ── Tagline – pinned at bottom ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.35 }}
-        style={{
-          position: 'absolute', bottom: 40, left: 0, right: 0,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-          padding: '0 40px',
-        }}
-      >
+        {/* Giant italic watermark */}
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '5px 14px', borderRadius: 99,
-          background: 'rgba(255,255,255,0.10)',
-          border: '1px solid rgba(255,255,255,0.22)',
-          backdropFilter: 'blur(8px)',
+          position: 'absolute', top: '12%', left: '50%',
+          transform: 'translateX(-52%)',
+          fontFamily: '"Cormorant Garamond", serif',
+          fontSize: 160, fontWeight: 300, fontStyle: 'italic',
+          color: 'rgba(255,255,255,0.055)',
+          whiteSpace: 'nowrap', userSelect: 'none',
+          letterSpacing: '-0.04em', lineHeight: 1,
+          pointerEvents: 'none',
         }}>
-          <Sparkles size={11} color="#FFB84A" />
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.13em', color: 'rgba(255,255,255,0.90)', textTransform: 'uppercase' }}>
-            AI-Powered Travel
-          </span>
+          VOYAGE
         </div>
 
-        <h2 style={{
-          fontFamily: 'serif', fontWeight: 700, fontSize: 28,
-          color: 'white', textAlign: 'center',
-          letterSpacing: '-0.02em', lineHeight: 1.25,
-          textShadow: '0 2px 20px rgba(0,0,0,0.30)',
-          margin: 0,
-        }}>
-          Your trip planned in{' '}
-          <em style={{ fontStyle: 'italic', color: '#FFB84A' }}>moments</em>
-        </h2>
+        {/* Top right badge */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+          style={{
+            position: 'absolute', top: 32, right: 32,
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'rgba(255,255,255,0.10)',
+            backdropFilter: 'blur(18px)',
+            border: '1px solid rgba(255,255,255,0.22)',
+            borderRadius: 40, padding: '8px 18px',
+          }}
+        >
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', boxShadow: '0 0 10px #4ADE80' }} />
+          <span style={{ fontSize: 11.5, color: 'white', fontWeight: 500, letterSpacing: '0.04em' }}>350+ Destinations Live</span>
+        </motion.div>
 
-        <p style={{
-          fontSize: 13.5, color: 'rgba(255,255,255,0.70)',
-          textAlign: 'center', lineHeight: 1.55,
-          maxWidth: 320, margin: 0,
-        }}>
-          Plan smarter, spend less, travel more —<br />
-          AI insights built for Indian travellers.
-        </p>
-      </motion.div>
+        {/* Floating cards — right side */}
+        <motion.div
+          initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.45, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          style={{ position: 'absolute', top: '28%', right: 36 }}
+        >
+          {/* Itinerary card */}
+          <div style={{
+            background: 'rgba(255,255,255,0.10)',
+            backdropFilter: 'blur(28px)',
+            border: '1px solid rgba(255,255,255,0.20)',
+            borderRadius: 20, padding: '22px 26px',
+            marginBottom: 14, maxWidth: 248,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+              <MapPin size={12} color="#FFB84A" />
+              <span style={{ fontSize: 10, color: 'rgba(255,230,180,0.80)', letterSpacing: '0.13em', textTransform: 'uppercase' }}>
+                AI Crafted
+              </span>
+            </div>
+            <p style={{
+              fontFamily: '"Cormorant Garamond", serif',
+              fontSize: 20, fontWeight: 500, color: 'white',
+              margin: '0 0 12px', lineHeight: 1.3,
+            }}>
+              7-day Rajasthan Itinerary
+            </p>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {['Jaipur', 'Jodhpur', 'Udaipur'].map((c) => (
+                <span key={c} style={{
+                  fontSize: 10, padding: '4px 10px',
+                  background: 'rgba(232,98,42,0.38)',
+                  border: '1px solid rgba(232,98,42,0.45)',
+                  borderRadius: 99, color: '#FFD4A8',
+                  letterSpacing: '0.05em',
+                }}>{c}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Savings card */}
+          <motion.div
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+            style={{
+              background: 'linear-gradient(135deg, rgba(232,98,42,0.35), rgba(200,70,20,0.45))',
+              backdropFilter: 'blur(24px)',
+              border: '1px solid rgba(255,160,90,0.35)',
+              borderRadius: 16, padding: '18px 22px',
+              maxWidth: 200,
+            }}
+          >
+            <p style={{ fontSize: 10, color: 'rgba(255,220,170,0.75)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 6px' }}>
+              Avg. Savings
+            </p>
+            <p style={{
+              fontFamily: '"Cormorant Garamond", serif',
+              fontSize: 38, color: 'white', fontWeight: 600,
+              margin: '0 0 4px', letterSpacing: '-0.02em', lineHeight: 1,
+            }}>₹12,400</p>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', margin: 0 }}>
+              per booking vs. others
+            </p>
+          </motion.div>
+        </motion.div>
+
+        {/* Bottom editorial copy */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.38, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          style={{ position: 'absolute', bottom: 44, left: 44, right: 44 }}
+        >
+          <p style={{
+            fontSize: 10.5, color: 'rgba(255,255,255,0.45)',
+            letterSpacing: '0.18em', textTransform: 'uppercase',
+            marginBottom: 14,
+          }}>
+            — The ultimate AI travel companion
+          </p>
+          <h2 style={{
+            fontFamily: '"Cormorant Garamond", serif',
+            fontSize: 46, fontWeight: 300, fontStyle: 'italic',
+            color: 'white', lineHeight: 1.18,
+            letterSpacing: '-0.02em', margin: 0,
+            textShadow: '0 4px 32px rgba(0,0,0,0.5)',
+          }}>
+            Every journey deserves<br />
+            a <em style={{ color: '#FFB84A', fontWeight: 600, fontStyle: 'normal' }}>perfect plan.</em>
+          </h2>
+
+          {/* Stat row */}
+          <div style={{
+            display: 'flex', gap: 32, marginTop: 24,
+            paddingTop: 20,
+            borderTop: '1px solid rgba(255,255,255,0.12)',
+          }}>
+            {[
+              { val: '350+', label: 'Destinations' },
+              { val: '2M+',  label: 'Trips Planned' },
+              { val: '4.9★', label: 'User Rating' },
+            ].map((s) => (
+              <div key={s.label}>
+                <p style={{
+                  fontFamily: '"Cormorant Garamond", serif',
+                  fontSize: 26, fontWeight: 600, color: 'white',
+                  margin: '0 0 2px', letterSpacing: '-0.01em',
+                }}>{s.val}</p>
+                <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.50)', letterSpacing: '0.08em', margin: 0 }}>
+                  {s.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }
