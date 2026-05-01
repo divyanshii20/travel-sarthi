@@ -74,56 +74,56 @@ export function AuthModal() {
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, closeModal]);
 
-  return (
-    <AnimatePresence mode="wait">
-      {isOpen && (
-        <motion.div
-          key="auth-modal-root"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.22 }}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 100,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 20,
-            fontFamily: '"DM Sans", system-ui, sans-serif',
-          }}
-        >
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
-            onClick={closeModal}
-            style={{
-              position: 'absolute', inset: 0,
-              background: 'rgba(20,12,4,0.55)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-            }}
-          />
+  // No AnimatePresence — when isOpen flips false, React unmounts the modal
+  // synchronously so no ghost overlay sticks around blocking clicks underneath.
+  // Entrance animations still play because motion.div animates from initial → animate.
+  if (!isOpen) return null;
 
-          {/* Modal panel */}
-          <motion.div
-            initial={{ opacity: 0, y: 18, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.97 }}
-            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              position: 'relative',
-              width: '100%', maxWidth: 980,
-              height: 620, maxHeight: '92vh',
-              background: '#FFFCF8',
-              borderRadius: 28,
-              overflow: 'hidden',
-              boxShadow:
-                '0 50px 120px rgba(40,20,5,0.40), 0 16px 40px rgba(40,20,5,0.20), 0 0 0 1px rgba(255,255,255,0.6) inset',
-              display: 'flex',
-            }}
-            role="dialog" aria-modal="true"
-          >
+  return (
+    <motion.div
+      key="auth-modal-root"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.22 }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+        fontFamily: '"DM Sans", system-ui, sans-serif',
+      }}
+    >
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.22 }}
+        onClick={closeModal}
+        style={{
+          position: 'absolute', inset: 0,
+          background: 'rgba(20,12,4,0.55)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+        }}
+      />
+
+      {/* Modal panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 18, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+        style={{
+          position: 'relative',
+          width: '100%', maxWidth: 980,
+          height: 620, maxHeight: '92vh',
+          background: '#FFFCF8',
+          borderRadius: 28,
+          overflow: 'hidden',
+          boxShadow:
+            '0 50px 120px rgba(40,20,5,0.40), 0 16px 40px rgba(40,20,5,0.20), 0 0 0 1px rgba(255,255,255,0.6) inset',
+          display: 'flex',
+        }}
+        role="dialog" aria-modal="true"
+      >
             {/* Left visual */}
             <ModalVisual />
 
@@ -219,9 +219,7 @@ export function AuthModal() {
               </div>
             </div>
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    </motion.div>
   );
 }
 
