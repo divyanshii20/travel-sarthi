@@ -38,7 +38,8 @@ type NormalizedGenerateRequest = {
 type GeminiItineraryResponse = {
   destination: string;
   country: string;
-  flag: string;
+  country_code?: string;
+  flag?: string;
   trip_summary: {
     total_days: number;
     total_travelers: number;
@@ -213,7 +214,7 @@ async function callGeminiWithFallback(prompt: string): Promise<GeminiItineraryRe
         logger.warn({ model, textLength: text.length }, 'Gemini hit token limit — JSON may be truncated');
       }
 
-      const parsed = JSON.parse(text) as GeminiItineraryResponse;
+      const parsed = parseJsonObject<GeminiItineraryResponse>(text);
       validateGeminiResponse(parsed);
 
       // Success — cache the working model name
@@ -231,6 +232,11 @@ async function callGeminiWithFallback(prompt: string): Promise<GeminiItineraryRe
       // Other errors (429, 500, timeout, etc.) → bail to Groq immediately.
       if (status === 404) {
         logger.warn({ model, status, ms: elapsed }, 'Gemini model not found — trying next');
+        if (cachedWorkingGeminiModel === model) cachedWorkingGeminiModel = null;
+        continue;
+      }
+      if ([429, 500, 502, 503, 504].includes(status ?? 0) && model !== candidates[candidates.length - 1]) {
+        logger.warn({ model, status, ms: elapsed }, 'Gemini transient failure - trying next model');
         if (cachedWorkingGeminiModel === model) cachedWorkingGeminiModel = null;
         continue;
       }
@@ -272,11 +278,10 @@ async function callGroq(systemPrompt: string, userPrompt: string, maxTokens = 20
 }
 
 // Groq sometimes deprecates models too — keep a small fallback list.
-const GROQ_MODEL_FALLBACKS = [
+const GROQ_MODEL_FALLBACKS = parseCsv(env.GROQ_ITINERARY_MODELS, [
   'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'llama3-70b-8192',
-];
+  'openai/gpt-oss-120b',
+]);
 
 async function callGroqForItinerary(prompt: string): Promise<GeminiItineraryResponse> {
   if (env.GROQ_API_KEY === 'placeholder' || env.GROQ_API_KEY.trim().length === 0) {
@@ -301,7 +306,6 @@ async function callGroqForItinerary(prompt: string): Promise<GeminiItineraryResp
           ],
           temperature: 0.3,
           max_tokens: 8192,
-          response_format: { type: 'json_object' },
         },
         {
           headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
@@ -360,11 +364,11 @@ export async function generateItinerary(
 
       // Fallback to Groq (Llama 3.3 70B) when Gemini is rate-limited or unavailable
       try {
-        logger.info('Generating itinerary via Groq fallback');
+        logger.info('Generating itinerary via fallback providers');
         const groqPrompt = buildGroqCompactPrompt(normalized, destinationContext);
-        parsed = await callGroqForItinerary(groqPrompt);
+        parsed = await callFallbackForItinerary(groqPrompt);
         validateGeminiResponse(parsed);
-        logger.info('Groq fallback succeeded');
+        logger.info('Itinerary fallback succeeded');
       } catch (groqError) {
         const groqMsg = groqError instanceof Error ? groqError.message : String(groqError);
         const groqStatus = axios.isAxiosError(groqError) ? groqError.response?.status : null;
@@ -511,7 +515,8 @@ Return ONLY a JSON object with this structure:
 {
   "destination": "city name",
   "country": "country name",
-  "flag": "🏳",
+  "country_code": "AE",
+  "flag": "",
   "trip_summary": { "total_days": ${durationDays}, "total_travelers": ${totalTravelers}, "budget_tier": "Budget|Mid-range|Luxury", "estimated_total_inr": 0, "estimated_per_person_inr": 0, "best_currency": "USD", "exchange_rate_note": "1 USD ≈ ₹83", "weather_during_trip": "hot", "language_tip": "tip", "emergency_number": "911", "indian_embassy": "address" },
   "pre_trip_checklist": ["passport", "visa"],
   "days": [
@@ -538,6 +543,7 @@ Return ONLY a JSON object with this structure:
   "packing_list": { "essentials": [], "clothing": [], "health": [], "tech": [] }
 }
 
+For the "flag" field, return an empty string. Do not output emoji or Unicode escapes anywhere in the JSON.
 Fill all ${durationDays} days with 4-5 real slots each. Use real place names. Keep costs in INR. Be concise but accurate.`;
 }
 
@@ -603,7 +609,8 @@ Return ONLY valid JSON. Use snake_case keys. Follow this exact structure:
 ${JSON.stringify({
   destination: 'string',
   country: 'string',
-  flag: 'emoji',
+  country_code: 'ISO 3166-1 alpha-2 country code, e.g. AE',
+  flag: '',
   trip_summary: {
     total_days: durationDays,
     total_travelers: totalTravelers,
@@ -663,6 +670,7 @@ ${JSON.stringify({
 })}
 
 IMPORTANT: For each slot's "location" field, use a specific, Google-searchable place name (e.g., "Senso-ji Temple, Asakusa" not just "temple"). This is used to resolve real GPS data via Google Places API after your response.
+IMPORTANT: Do not output emoji or malformed Unicode escapes. Set "flag" to an empty string and use "country_code" for the ISO country code.
 
 Now create the ultimate ${durationDays}-day itinerary for ${request.destination}. Make it extraordinary.`;
 }
@@ -672,6 +680,63 @@ Now create the ultimate ${durationDays}-day itinerary for ${request.destination}
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 function validateGeminiResponse(payload: GeminiItineraryResponse) {
+  payload.destination = payload.destination || 'Destination';
+  payload.country = payload.country || 'Unknown';
+  payload.flag = normalizeFlag(payload.flag, payload.country_code);
+  payload.trip_summary = Object.assign({
+    total_days: Array.isArray(payload.days) ? payload.days.length : 1,
+    total_travelers: 1,
+    budget_tier: 'Budget',
+    estimated_total_inr: 0,
+    estimated_per_person_inr: 0,
+    best_currency: 'INR',
+    exchange_rate_note: 'Check live exchange rates before booking.',
+    weather_during_trip: 'Check forecast before travel.',
+    language_tip: 'Learn basic local greetings.',
+    emergency_number: 'Check local emergency number.',
+    indian_embassy: 'Check the nearest Indian embassy or consulate.',
+  }, payload.trip_summary);
+  payload.pre_trip_checklist = Array.isArray(payload.pre_trip_checklist) ? payload.pre_trip_checklist : [];
+  payload.hotels = Array.isArray(payload.hotels) ? payload.hotels : [];
+  payload.transport_summary = Object.assign({
+    day_passes: [],
+    app_downloads: [],
+  }, payload.transport_summary);
+  payload.budget_breakdown = Object.assign({
+    flights_inr: 0,
+    accommodation_total_inr: 0,
+    food_total_inr: 0,
+    transport_local_inr: 0,
+    activities_inr: 0,
+    shopping_buffer_inr: 0,
+    visa_fee_inr: 0,
+    misc_contingency_inr: 0,
+    grand_total_inr: 0,
+    per_person_inr: 0,
+    vs_budget: 'within',
+    savings_tips: [],
+  }, payload.budget_breakdown);
+  payload.experiences_by_category = Object.assign({
+    must_do: [],
+    food_trail: [],
+    off_beaten_path: [],
+    splurge_if_possible: [],
+    skip: [],
+  }, payload.experiences_by_category);
+  payload.day_trips = Array.isArray(payload.day_trips) ? payload.day_trips : [];
+  payload.cultural_guide = Object.assign({
+    dos: [],
+    donts: [],
+    scams_to_avoid: [],
+    indian_specific: [],
+  }, payload.cultural_guide);
+  payload.packing_list = Object.assign({
+    essentials: [],
+    clothing: [],
+    health: [],
+    tech: [],
+  }, payload.packing_list);
+
   if (!Array.isArray(payload.days) || payload.days.length === 0) {
     throw new Error('Itinerary must contain at least one day');
   }
@@ -679,6 +744,16 @@ function validateGeminiResponse(payload: GeminiItineraryResponse) {
     if (!Array.isArray(day.slots) || day.slots.length === 0) {
       throw new Error(`Day ${day.day_number} has no slots`);
     }
+    day.day_budget_summary = Object.assign({
+      accommodation_inr: 0,
+      food_inr: 0,
+      transport_inr: 0,
+      activities_inr: 0,
+      misc_inr: 0,
+      day_total_inr: 0,
+      day_total_per_person_inr: 0,
+    }, day.day_budget_summary);
+    day.day_tips = Array.isArray(day.day_tips) ? day.day_tips : [];
   }
 }
 
@@ -759,7 +834,7 @@ async function transformGeminiResponse(
     title: `${payload.destination} ${days.length}-Day Itinerary`,
     destination: payload.destination,
     country: payload.country,
-    flag: payload.flag,
+    flag: payload.flag ?? '',
     startDate: request.departureDate,
     endDate: request.returnDate,
     durationDays: payload.trip_summary.total_days,
@@ -988,6 +1063,140 @@ async function getDistanceMatrixWithMode(originPlaceId: string, destPlaceId: str
 function getDurationDays(startDate: string, endDate: string) {
   const diff = new Date(endDate).getTime() - new Date(startDate).getTime();
   return Math.max(1, Math.floor(diff / (1000 * 60 * 60 * 24)) + 1);
+}
+
+function parseCsv(value: string | undefined, fallback: string[]) {
+  const parsed = (value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+
+  return parsed.length > 0 ? parsed : fallback;
+}
+
+function parseJsonObject<T>(text: string): T {
+  const trimmed = text.trim();
+  const candidates = [trimmed];
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    candidates.push(trimmed.slice(firstBrace, lastBrace + 1));
+  }
+
+  let lastError: unknown = new Error('No JSON candidate found');
+  for (const candidate of candidates) {
+    for (const attempt of [candidate, repairInvalidUnicodeEscapes(candidate)]) {
+      try {
+        return JSON.parse(attempt) as T;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+async function callOpenAiCompatibleForItinerary(prompt: string): Promise<GeminiItineraryResponse> {
+  const keyConfigured = env.ITINERARY_OPENAI_COMPAT_API_KEY !== 'placeholder'
+    && env.ITINERARY_OPENAI_COMPAT_API_KEY.trim().length > 0;
+  const model = env.ITINERARY_OPENAI_COMPAT_MODEL.trim();
+  if (!keyConfigured || model.length === 0) {
+    throw new Error('OpenAI-compatible itinerary fallback not configured');
+  }
+
+  let lastError: unknown = new Error('No OpenAI-compatible itinerary attempt');
+  for (const forceJson of [true, false]) {
+    const t0 = Date.now();
+    try {
+      logger.info({ model, forceJson }, 'OpenAI-compatible itinerary attempt');
+      const res = await axios.post(
+        `${env.ITINERARY_OPENAI_COMPAT_BASE_URL.replace(/\/$/, '')}/chat/completions`,
+        {
+          model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an elite travel architect. Return only a valid JSON object. Do not include markdown, emoji, comments, or malformed Unicode escapes.',
+            },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.2,
+          max_tokens: 8192,
+          ...(forceJson ? { response_format: { type: 'json_object' } } : {}),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${env.ITINERARY_OPENAI_COMPAT_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': env.API_BASE_URL,
+            'X-Title': 'Travel Sarthi',
+          },
+          timeout: 60000,
+        },
+      );
+
+      const text = (res.data?.choices?.[0]?.message?.content ?? '').trim();
+      if (text.length === 0) throw new Error('OpenAI-compatible provider returned empty itinerary');
+      const parsed = parseJsonObject<GeminiItineraryResponse>(text);
+      validateGeminiResponse(parsed);
+      logger.info({ model, forceJson, ms: Date.now() - t0, bytes: text.length }, 'OpenAI-compatible itinerary success');
+      return parsed;
+    } catch (err) {
+      lastError = err;
+      const status = axios.isAxiosError(err) ? err.response?.status : null;
+      const code = axios.isAxiosError(err) ? err.code : null;
+      const data = axios.isAxiosError(err) ? err.response?.data : null;
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn({ model, forceJson, status, code, msg, data, ms: Date.now() - t0 }, 'OpenAI-compatible itinerary attempt failed');
+      if (status === 401 || status === 403) throw err;
+    }
+  }
+
+  throw lastError;
+}
+
+async function callFallbackForItinerary(prompt: string): Promise<GeminiItineraryResponse> {
+  let groqError: unknown = null;
+  try {
+    logger.info('Generating itinerary via Groq fallback');
+    return await callGroqForItinerary(prompt);
+  } catch (error) {
+    groqError = error;
+    logger.warn({ err: error instanceof Error ? error.message : String(error) }, 'Groq itinerary fallback failed');
+  }
+
+  try {
+    logger.info('Generating itinerary via OpenAI-compatible fallback');
+    return await callOpenAiCompatibleForItinerary(prompt);
+  } catch (compatError) {
+    const error = new Error('All itinerary fallback providers failed');
+    Object.assign(error, { groqError, compatError });
+    throw error;
+  }
+}
+
+function repairInvalidUnicodeEscapes(value: string) {
+  return value.replace(/\\u(?![0-9a-fA-F]{4})/g, '');
+}
+
+function normalizeFlag(flag: string | undefined, countryCode: string | undefined) {
+  if (typeof flag === 'string' && isLikelyFlagEmoji(flag)) return flag;
+  return countryCodeToFlag(countryCode) ?? '';
+}
+
+function isLikelyFlagEmoji(value: string) {
+  const codePoints = [...value.trim()].map((char) => char.codePointAt(0) ?? 0);
+  return codePoints.length === 2 && codePoints.every((point) => point >= 0x1f1e6 && point <= 0x1f1ff);
+}
+
+function countryCodeToFlag(countryCode: string | undefined) {
+  const normalized = countryCode?.trim().toUpperCase();
+  if (normalized == null || !/^[A-Z]{2}$/.test(normalized)) return null;
+
+  return String.fromCodePoint(
+    ...[...normalized].map((letter) => 0x1f1e6 + letter.charCodeAt(0) - 65),
+  );
 }
 
 function money(amount: number) {

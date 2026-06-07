@@ -57,6 +57,12 @@ const envSchema = z.object({
 
   // Groq (Llama)
   GROQ_API_KEY: z.string().default('placeholder'),
+  GROQ_ITINERARY_MODELS: z.string().default('llama-3.3-70b-versatile,openai/gpt-oss-120b'),
+
+  // Optional OpenAI-compatible itinerary fallback (OpenRouter, Together, etc.)
+  ITINERARY_OPENAI_COMPAT_API_KEY: z.string().default('placeholder'),
+  ITINERARY_OPENAI_COMPAT_BASE_URL: z.string().url().default('https://openrouter.ai/api/v1'),
+  ITINERARY_OPENAI_COMPAT_MODEL: z.string().default(''),
 
   // Foursquare
   FOURSQUARE_API_KEY: z.string().default('placeholder'),
